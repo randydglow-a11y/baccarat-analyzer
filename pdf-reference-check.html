@@ -35,6 +35,10 @@ function renderPreview(tokens){
   const mismatches=smallReference.filter(x=>actual.get(x.c+','+x.r)!==x.v);
   const p=document.createElement('p');p.className='coord-note';p.textContent='Small Road PDF spot-check (10 clearly visible early cells): '+(smallReference.length-mismatches.length)+'/10 match. '+(mismatches.length?'First discrepancy: column '+mismatches[0].c+', row '+mismatches[0].r+'; PDF '+(mismatches[0].v==='B'?'red':'blue')+', generated '+(actual.has(mismatches[0].c+','+mismatches[0].r)?(actual.get(mismatches[0].c+','+mismatches[0].r)==='B'?'red':'blue'):'empty')+'.':'No discrepancies in this limited spot-check.')+' This does not verify the entire Small Road.';diff.append(p);
   const neighborhood=document.createElement('p');neighborhood.className='coord-note';neighborhood.textContent='Generated Small Road near first discrepancy: '+[5,6,7,8,9].map(col=>'C'+col+' ['+[1,2,3].map(row=>{const v=actual.get(col+','+row);return v==='B'?'R':v==='P'?'B':'·'}).join(' ')+']').join('  ')+' (top to bottom; R=red, B=blue, ·=empty). This helps distinguish shifted marks from color differences.';diff.append(neighborhood);
+  const trace=document.createElement('p');trace.className='coord-note';
+  const first=generated.slice(0,24).map((x,i)=>(i+1)+':'+(x.v==='B'?'R':'B')+'@C'+(x.c+1)+'R'+(x.r+1));
+  trace.textContent='Small Road first 24 generated marks (chronological): '+first.join(' · ')+'. Use this to identify whether the missing PDF mark was shifted or its color differs.';
+  diff.append(trace);
  }
  const roads=[['Big Road',big.cells,'hollow'],['Big Eye Boy',window.BaccaratRoads.derived(big,1),'hollow'],['Small Road',window.BaccaratRoads.derived(big,2),'filled'],['Cockroach Pig',window.BaccaratRoads.derived(big,3),'slash']];
  for(const [name,cells,style] of roads){
