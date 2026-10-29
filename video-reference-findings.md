@@ -30,3 +30,14 @@ At hand 7 the comparison is Big Road column 1 (Player) at row 3 versus row 2. Ro
 The currently used implementation compares logical run depths. The official rule uses *physical cell occupancy* and special handling for dragon tails. We should build a physical-cell reference implementation and compare it against the existing algorithm for long runs, without replacing the live implementation prematurely.
 
 Source: https://wsgc.wa.gov/sites/default/files/2025-02/3187%20Baccarat%20-%20Approval%20Letter%20ETG%20%28updated%29signed_0.pdf
+
+## Verified individual video frames (October 29)
+
+Direct inspection of the supplied recording `ScreenRecording_10-29-2026 07-25-11_1.mp4`:
+- **00:17, counter 5:** Small Road empty.
+- **00:19, counter 6:** Small Road has one red filled mark in its first column, row 1.
+- **00:20, counter 7:** Small Road has two red filled marks in its first column, rows 1 and 2.
+
+The frame at counter 6 verifies the first mark's color. The next frame verifies that the **second mark appears red at hand 7**, rather than merely being moved later. Our current implementation returns red at hand 6 and blue at hand 7. The **first confirmed discrepancy is color at hand 7**; positioning of the second mark is downstream of that color difference.
+
+This is video evidence of the reference application's behavior, not evidence that the reference uses a published standard convention. Keep the distinction explicit. Do not change the live algorithm based on one anomalous rule until further hand-by-hand checkpoints identify a consistent reference-specific formula.
