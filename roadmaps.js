@@ -162,6 +162,74 @@ function showRowHits(results,big,eye,small,pig){
   }
  }
 }
+
+function allShoeRoads(hands){
+ const big=buildBig(hands),eye=derived(big,1),small=derived(big,2),pig=derived(big,3);
+ return [['Bead',hands.map(v=>({v})),true],['Big Road',big.cells,false],['Big Eye Boy',eye,false],['Small Road',small,false],['Cockroach Pig',pig,false]];
+}
+function firstHits(cells,rows,bead){
+ const cols=new Map();
+ cells.forEach((x,i)=>{const c=bead?Math.floor(i/rows):x.c,row=bead?i%rows:x.r;if(!cols.has(c))cols.set(c,new Map());cols.get(c).set(row,x.v)});
+ const match=Array(rows).fill(0),different=Array(rows).fill(0);
+ let total=0,yes=0,no=0;
+ for(const [c,cur] of cols){
+  const prev=cols.get(c-1);if(!prev)continue;
+  total++;let m=-1,d=-1;
+  for(let row=0;row<rows;row++){
+   if(!cur.has(row)||!prev.has(row))continue;
+   if(cur.get(row)===prev.get(row)){if(m<0)m=row}
+   else if(d<0)d=row;
+   if(m>=0&&d>=0)break;
+  }
+  if(m>=0){match[m]++;yes++}
+  if(d>=0){different[d]++;no++}
+ }
+ return {total,yes,no,match,different};
+}
+function showAllShoes(){
+ const root=document.getElementById('all-shoes-body'),rowRoot=document.getElementById('all-shoes-row-body');
+ if(!root||!rowRoot)return;
+ const shoes=window.getBaccaratSavedShoes?window.getBaccaratSavedShoes():[];
+ const rowsOptions=[1,2,3,4,5,6,7,8,9,10,12],aggregate=new Map();
+ let handCount=0,nonempty=0;
+ for(const shoe of shoes){
+  const hands=Array.isArray(shoe.hands)?shoe.hands.filter(v=>v==='B'||v==='P'||v==='T'):[];
+  if(!hands.length)continue;
+  nonempty++;handCount+=hands.length;
+  for(const [name,cells,bead] of allShoeRoads(hands)){
+   for(const rows of rowsOptions){
+    const positioned=bead||rows===6?cells:cells.map((x,i)=>({...x,c:Math.floor(i/rows),r:i%rows}));
+    const stat=firstHits(positioned,rows,bead),key=name+'|'+rows;
+    if(!aggregate.has(key))aggregate.set(key,{name,rows,total:0,yes:0,no:0,match:Array(rows).fill(0),different:Array(rows).fill(0),shoes:0});
+    const entry=aggregate.get(key);
+    entry.total+=stat.total;entry.yes+=stat.yes;entry.no+=stat.no;
+    if(stat.total)entry.shoes++;
+    for(let i=0;i<rows;i++){entry.match[i]+=stat.match[i];entry.different[i]+=stat.different[i]}
+   }
+  }
+ }
+ const kind=document.getElementById('all-shoes-type')?.value||'match';
+ const min=Number(document.getElementById('all-shoes-min')?.value||10);
+ const value=e=>kind==='match'?e.yes:e.no;
+ const entries=[...aggregate.values()].filter(e=>e.total>=min).sort((a,b)=>value(b)/b.total-value(a)/a.total||b.total-a.total||a.name.localeCompare(b.name)||a.rows-b.rows);
+ root.replaceChildren();
+ for(const e of entries){
+  const tr=document.createElement('tr');
+  for(const val of [e.name,e.rows,e.shoes,value(e)+' / '+e.total,(100*value(e)/e.total).toFixed(1)+'%']){const td=document.createElement('td');td.textContent=val;tr.appendChild(td)}
+  root.appendChild(tr);
+ }
+ const selectedRows=Number(document.getElementById('all-shoes-row-setting')?.value||6);
+ const rowEntries=[...aggregate.values()].filter(e=>e.rows===selectedRows&&e.total>=min).flatMap(e=>Array.from({length:e.rows},(_,i)=>({name:e.name,row:i+1,total:e.total,hits:kind==='match'?e.match[i]:e.different[i],shoes:e.shoes}))).sort((a,b)=>b.hits/b.total-a.hits/a.total||b.total-a.total||a.name.localeCompare(b.name)||a.row-b.row);
+ rowRoot.replaceChildren();
+ for(const e of rowEntries){const tr=document.createElement('tr');for(const val of [e.name,'Row '+e.row,e.hits+' / '+e.total,(100*e.hits/e.total).toFixed(1)+'%']){const td=document.createElement('td');td.textContent=val;tr.appendChild(td)}rowRoot.appendChild(tr)}
+ const status=document.getElementById('all-shoes-status');
+ if(status)status.textContent=nonempty+' nonempty saved shoes · '+handCount+' hands · '+entries.length+' road/row-setting combinations with '+min+'+ comparisons. Comparisons never cross shoe boundaries.';
+ const rowStatus=document.getElementById('all-shoes-row-status');
+ if(rowStatus)rowStatus.textContent=rowEntries.length?'First-hit row rankings for '+selectedRows+' rows; percentages use all adjacent-column comparisons for each road.':'No rows meet the minimum comparisons filter.';
+ if(!entries.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.textContent='No combinations meet this filter yet. Try All comparisons or add more saved shoe results.';tr.appendChild(td);root.appendChild(tr)}
+}
+window.refreshAllShoes=showAllShoes;
+
 function renderRoadmaps(){
  const results=window.hands;if(!Array.isArray(results))return;
  const big=buildBig(results);
