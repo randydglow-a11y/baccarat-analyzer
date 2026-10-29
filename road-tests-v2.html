@@ -50,6 +50,20 @@ for(const offset of [1,2,3]){
  }
  check(['Big Eye Boy','Small Road','Cockroach Pig'][offset-1]+' dragon-tail color stress',ok,ok?'5 synthetic cases with long streaks and ties':detail);
 }
+// Independent baccaratcalc.com 41-hand final-frame visual checks.
+// Screenshot shows Small Road first 10 top cells R,B,R,B,R,B,R,B,R,B,
+// and Cockroach Pig columns 2–10 top cells B,R,B,R,B,R,B,R,B.
+function colorsAt(cells,row,start,end){
+ const grid=new Map(cells.map(x=>[(x.c+1)+','+(x.r+1),x.v==='B'?'R':'U']));
+ return Array.from({length:end-start+1},(_,i)=>grid.get((start+i)+','+row)||'.').join('');
+}
+const readerBig=BaccaratRoads.buildBig(video41);
+const readerSmall=BaccaratRoads.derived(readerBig,2);
+const readerPig=BaccaratRoads.derived(readerBig,3);
+check('Independent reader Small Road top row C1–C10',colorsAt(readerSmall,1,1,10)==='RURURURURU','Expected RURURURURU; got '+colorsAt(readerSmall,1,1,10));
+check('Independent reader Small Road second row C4–C6',colorsAt(readerSmall,2,4,6)==='URU','Expected URU; got '+colorsAt(readerSmall,2,4,6));
+check('Independent reader Small Road third row C5–C6',colorsAt(readerSmall,3,5,6)==='RU','Expected RU; got '+colorsAt(readerSmall,3,5,6));
+check('Independent reader Cockroach Pig top row C2–C10',colorsAt(readerPig,1,2,10)==='URURURURU','Expected URURURURU; got '+colorsAt(readerPig,1,2,10));
 check('PDF shoe totals',shoe.length===68&&shoe.filter(x=>x==='B').length===35&&shoe.filter(x=>x==='P').length===27&&shoe.filter(x=>x==='T').length===6,shoe.length+' hands');
 check('First Big Road circle is Player with opening Tie',big.cells[0]?.v==='P'&&big.cells[0]?.tie===1);
 check('Big Road opening streaks',runs.slice(0,10).map(x=>x.v+x.n).join(',')==='P2,B1,P4,B5,P1,B1,P2,B2,P1,B4');
