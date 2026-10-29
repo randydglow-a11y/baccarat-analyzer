@@ -20,5 +20,15 @@ check('PDF page 2 Big Road streak sequence matches independently transcribed run
 check('PDF page 2 Big Road positions have no overlapping cells',()=>{const a=buildBig(page2).cells;return new Set(a.map(x=>x.c+','+x.r)).size===a.length});
 check('PDF page 2 tie count remains six across Big Road marks',()=>buildBig(page2).cells.reduce((sum,x)=>sum+x.tie,0)===6);
 
+
+check('Many alternating and long streaks never overwrite Big Road cells',()=>{
+ const cases=['BBBBBBBBBBBBPPBBBBBBBBBBBBPPPPBBBBBBBBBBBBPP','BP'.repeat(35),'B'.repeat(30)+'P'.repeat(7)+'B'.repeat(20)];
+ return cases.every(s=>{const a=buildBig(s.split('')).cells;return new Set(a.map(x=>x.c+','+x.r)).size===a.length});
+});
+check('Long-streak stress cases never overwrite derived-road cells',()=>{
+ const cases=['BBBBBBBBBBBBPPBBBBBBBBBBBBPPPPBBBBBBBBBBBBPP','BP'.repeat(35),'B'.repeat(30)+'P'.repeat(7)+'B'.repeat(20)];
+ return cases.every(s=>{const big=buildBig(s.split(''));return [1,2,3].every(n=>{const a=derived(big,n);return new Set(a.map(x=>x.c+','+x.r)).size===a.length})});
+});
+
 document.body.insertAdjacentHTML('beforeend','<strong>'+ (failures?'Some checks failed':'All checks passed')+'</strong>');
 </script></html>
