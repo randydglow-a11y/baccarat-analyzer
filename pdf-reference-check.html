@@ -85,6 +85,28 @@ function renderPreview(tokens){
   }
   if(!mismatches.length){const li=document.createElement('li');li.textContent='No differences in the transcribed reference sample.';mismatchList.append(li)}
   diff.append(mismatchList);
+  // Side-by-side reference overlay: fixed shared coordinates, no independent scrolling.
+  const compareTitle=document.createElement('h3');compareTitle.textContent='Aligned PDF vs generated Small Road (first 24 columns)';diff.append(compareTitle);
+  const compareNote=document.createElement('p');compareNote.className='coord-note';compareNote.textContent='Each pair uses the same column/row coordinates. PDF is a manual transcription (42 marked cells only); blank PDF positions are unverified, not confirmed empty. Yellow outlines identify sampled cells that disagree.';diff.append(compareNote);
+  const refMap=new Map(smallReference.map(x=>[x.c+','+x.r,x.v]));
+  const comparisonViewport=document.createElement('div');comparisonViewport.className='road-container';comparisonViewport.style.overflowX='auto';
+  const comparisonPair=document.createElement('div');comparisonPair.style.width='max-content';
+  const makeComparison=(label,reference)=>{
+   const heading=document.createElement('p');heading.textContent=label;heading.style.margin='8px 0 4px';comparisonPair.append(heading);
+   const grid=document.createElement('div');grid.className='road-grid';grid.style.gridTemplateColumns='repeat(24,19px)';grid.style.gridTemplateRows='repeat(6,19px)';
+   for(let row=1;row<=6;row++)for(let col=1;col<=24;col++){
+    const key=col+','+row;const expected=refMap.get(key);const value=reference?expected:actual.get(key);
+    const dot=document.createElement('span');dot.className='road-cell'+(value?' filled '+value.toLowerCase():'');
+    dot.style.gridColumn=col;dot.style.gridRow=row;dot.title=label+' C'+col+' R'+row+': '+(value?value==='B'?'red':'blue':reference?'not transcribed':'empty');
+    if(expected&&actual.get(key)!==expected){dot.style.outline='2px solid #ffe181';dot.style.outlineOffset='1px'}
+    if(reference&&!expected){dot.style.opacity='.16'}
+    grid.append(dot);
+   }
+   comparisonPair.append(grid);
+  };
+  makeComparison('PDF transcription (only confirmed marked cells)',true);
+  makeComparison('Generated Small Road (same coordinates)',false);
+  comparisonViewport.append(comparisonPair);diff.append(comparisonViewport);
   const neighborhood=document.createElement('p');neighborhood.className='coord-note';neighborhood.textContent='Generated Small Road near first discrepancy: '+[5,6,7,8,9].map(col=>'C'+col+' ['+[1,2,3].map(row=>{const v=actual.get(col+','+row);return v==='B'?'R':v==='P'?'B':'·'}).join(' ')+']').join('  ')+' (top to bottom; R=red, B=blue, ·=empty). This helps distinguish shifted marks from color differences.';diff.append(neighborhood);
   const trace=document.createElement('p');trace.className='coord-note';
   const first=generated.slice(0,24).map((x,i)=>(i+1)+':'+(x.v==='B'?'R':'B')+'@C'+(x.c+1)+'R'+(x.r+1));
