@@ -36,6 +36,37 @@ document.getElementById('new-shoe').addEventListener('click',()=>{
  const s={id:id(),name:name.trim().slice(0,60)||'Shoe '+(state.shoes.length+1),created:new Date().toISOString(),hands:[]};
  state.shoes.push(s);state.active=s.id;save();
 });
+// Import a reference shoe as a separate saved shoe; never replace existing history.
+document.getElementById('paste-shoe').addEventListener('click',()=>{
+ const raw=prompt('Paste results: B P T, Banker Player Tie, or a continuous sequence like BPPBT.');
+ if(raw===null)return;
+ const trimmed=raw.trim();
+ if(!trimmed){alert('No results entered.');return}
+ let tokens;
+ if(/^[BPT\\s,;|/-]+$/i.test(trimmed)){
+  tokens=trimmed.toUpperCase().replace(/[^BPT]/g,'').split('');
+ }else{
+  tokens=trimmed.split(/[\\s,;|/]+/).filter(Boolean).map(v=>{
+   const word=v.toUpperCase();return ({B:'B',BANKER:'B',P:'P',PLAYER:'P',T:'T',TIE:'T'})[word]||null;
+  });
+ }
+ if(!tokens.length||tokens.some(v=>!v)){alert('Invalid results. Use only B, P, T or Banker, Player, Tie.');return}
+ if(tokens.length>1000){alert('Limit: 1,000 hands per paste.');return}
+ const b=tokens.filter(v=>v==='B').length,p=tokens.filter(v=>v==='P').length,t=tokens.filter(v=>v==='T').length;
+ if(!confirm('Create a NEW shoe with '+tokens.length+' hands ('+b+' Banker, '+p+' Player, '+t+' Tie)? Existing shoes will stay unchanged.'))return;
+ const name=prompt('Name this reference shoe:','Reference shoe '+(state.shoes.length+1));
+ if(name===null)return;
+ const newShoe={id:id(),name:name.trim().slice(0,60)||'Reference shoe '+(state.shoes.length+1),created:new Date().toISOString(),hands:tokens};
+ state.shoes.push(newShoe);state.active=newShoe.id;save();
+});
+document.getElementById('copy-shoe').addEventListener('click',async()=>{
+ const sequence=current().hands.join('');
+ if(!sequence){alert('This shoe has no recorded hands.');return}
+ try{
+  if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(sequence);alert('Copied '+sequence.length+' results (B/P/T).')}
+  else prompt('Copy this sequence:',sequence);
+ }catch(e){prompt('Copy this sequence:',sequence)}
+});
 document.getElementById('rename-shoe').addEventListener('click',()=>{
  const name=prompt('Rename this shoe:',current().name);if(name===null)return;
  if(name.trim()){current().name=name.trim().slice(0,60);save()}
