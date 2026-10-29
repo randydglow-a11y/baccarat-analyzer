@@ -124,13 +124,17 @@ function renderNextPreview(results){
   panel.appendChild(marks);root.appendChild(panel);
  }
 }
+function strategy(cells,rows,bead){const cols=new Map();cells.forEach((x,i)=>{const c=bead?Math.floor(i/rows):x.c,k=bead?i%rows:x.r;if(!cols.has(c))cols.set(c,new Map());cols.get(c).set(k,x.v)});let total=0,yes=0,no=0;for(const [c,cur] of cols){const prev=cols.get(c-1);if(!prev)continue;total++;let y=false,n=false;for(const [row,v] of cur){if(!prev.has(row))continue;if(prev.get(row)===v)y=true;else n=true}if(y)yes++;if(n)no++}return [total,yes,no]}
+function showStrategies(results,big,eye,small,pig){const root=document.getElementById('strategy-body');if(!root)return;const rows=window.getRoadDisplayRows?window.getRoadDisplayRows():6;const wrap=a=>rows===6?a:a.map((x,i)=>({...x,c:Math.floor(i/rows),r:i%rows}));const items=[['Bead',results.map(v=>({v})),true],['Big Road',wrap(big),false],['Big Eye Boy',wrap(eye),false],['Small Road',wrap(small),false],['Cockroach Pig',wrap(pig),false]];root.replaceChildren();for(const [name,cells,bead] of items){const [total,yes,no]=strategy(cells,rows,bead);const tr=document.createElement('tr');for(const value of [name,yes+'/'+total,total?(100*yes/total).toFixed(1)+'%':'—',no+'/'+total,total?(100*no/total).toFixed(1)+'%':'—']){const td=document.createElement('td');td.textContent=value;tr.appendChild(td)}root.appendChild(tr)}}
 function renderRoadmaps(){
  const results=window.hands;if(!Array.isArray(results))return;
  const big=buildBig(results);
+ const eye=derived(big,1),small=derived(big,2),pig=derived(big,3);
  draw('big-road',big.cells,'big');
- draw('big-eye-road',derived(big,1),'derived hollow');
- draw('small-road',derived(big,2),'derived solid');
- draw('cockroach-road',derived(big,3),'derived slash');
+ draw('big-eye-road',eye,'derived hollow');
+ draw('small-road',small,'derived solid');
+ draw('cockroach-road',pig,'derived slash');
+ showStrategies(results,big.cells,eye,small,pig);
  renderNextPreview(results);
  const ties=results.filter(x=>x==='T').length;
  const runs=big.cells.filter(x=>x.run===0).length;
