@@ -41,3 +41,11 @@ Direct inspection of the supplied recording `ScreenRecording_10-29-2026 07-25-11
 The frame at counter 6 verifies the first mark's color. The next frame verifies that the **second mark appears red at hand 7**, rather than merely being moved later. Our current implementation returns red at hand 6 and blue at hand 7. The **first confirmed discrepancy is color at hand 7**; positioning of the second mark is downstream of that color difference.
 
 This is video evidence of the reference application's behavior, not evidence that the reference uses a published standard convention. Keep the distinction explicit. Do not change the live algorithm based on one anomalous rule until further hand-by-hand checkpoints identify a consistent reference-specific formula.
+
+## Frame crop independently inspected
+
+The 00:22 frame at counter 8 was cropped to show all three derived-road panels separately. The **upper panel** has hollow circles (Big Eye Boy), the **middle panel** has two solid red circles (Small Road), and the **lower panel** is empty (Cockroach Pig). Thus the two red marks were correctly assigned to Small Road; they are not Big Eye Boy marks.
+
+The earlier documentation used hand 7 at 00:20; the 00:22 frame corroborates the road identity, but it is a different counter (8). Keep the exact timestamp and hand counter attached to each observation. The video UI's large colored outcome overlay can obscure parts of the display.
+
+No rule change is justified yet from this crop alone.
