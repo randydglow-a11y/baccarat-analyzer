@@ -1,80 +1,96 @@
-/* Baccarat roadmap rendering: results are descriptive, never predictive. */
+/* Baccarat road display, six-row convention. Historical only. */
 (function(){
+'use strict';
 const ROWS=6;
-function makeBoard(id, entries, style){
- const el=document.getElementById(id);if(!el)return;
- el.innerHTML='';el.className='road advanced-road '+(style||'');
- const columns=Math.max(12,entries.reduce((m,x)=>Math.max(m,x.c+1),0));
- el.style.gridTemplateColumns='repeat('+columns+', 30px)';
- el.style.gridTemplateRows='repeat(6, 30px)';
- // CSS grid is row-major here; place each cell explicitly.
- for(const entry of entries){
-  const dot=document.createElement('span');
-  dot.className='roadmark '+(entry.v==='B'?'red':entry.v==='P'?'blue':'green');
-  dot.style.gridColumn=(entry.c+1);dot.style.gridRow=(entry.r+1);
-  dot.textContent=style==='derived'?'':(entry.tie?String(entry.tie):'');
-  dot.title=(entry.v==='B'?'Banker':entry.v==='P'?'Player':'Tie')+(entry.tie?' · '+entry.tie+' tie(s)':'');
-  if(entry.tie)dot.classList.add('with-tie');
-  el.appendChild(dot);
- }
-}
-function buildBig(hands){
- const groups=[];let pending=0;
- for(const v of hands){
-  if(v==='T'){if(groups.length&&groups[groups.length-1].length)groups[groups.length-1][groups[groups.length-1].length-1].tie++;else pending++;continue}
-  if(!groups.length||groups[groups.length-1][0].v!==v)groups.push([]);
-  groups[groups.length-1].push({v,tie:pending});pending=0;
- }
- const cells=[],used=new Set(),colLengths=[];
- let prev=null;
- for(let g=0;g<groups.length;g++){
-  const run=groups[g];let c=g===0?0:Math.max(...cells.filter(x=>x.group===g-1).map(x=>x.c))+1,r=0;
-  for(let i=0;i<run.length;i++){
-   if(i>0){
-    const down=r+1;
-    if(down<ROWS&&!used.has(c+','+down)&&!(r===0&&used.has(c+','+down))){r=down}
-    else {c++;} 
-   }
-   while(used.has(c+','+r))c++;
-   used.add(c+','+r);cells.push({...run[i],c,r,group:g,index:i});
+function position(results){
+ const cells=[],occupied=new Set();
+ let previous=null,anchor=0,c=0,r=0,run=0;
+ for(const item of results){
+  const v=item.v;
+  if(v!==previous){
+   anchor=previous===null?0:Math.max(anchor+1,c+1);
+   c=anchor;r=0;run=0;
+  }else{
+   const below=r+1;
+   if(below<ROWS&&!occupied.has(c+','+below))r=below;
+   else c++;
+   while(occupied.has(c+','+r))c++;
   }
-  colLengths.push(run.length);
+  occupied.add(c+','+r);
+  cells.push({...item,c,r,run:run++,anchor});
+  previous=v;
  }
- if(pending&&cells.length)cells[cells.length-1].tie+=pending;
- return {cells,groups};
+ return cells;
+}
+function buildBig(results){
+ const decisive=[];let leadingTies=0;
+ for(const v of results){
+  if(v==='T'){
+   if(decisive.length)decisive[decisive.length-1].tie++;
+   else leadingTies++;
+  }else decisive.push({v,tie:0});
+ }
+ if(decisive.length)decisive[0].tie+=leadingTies;
+ return {cells:position(decisive),leadingTies:decisive.length?0:leadingTies};
 }
 function derived(big,offset){
- // Derived roads compare historical Big Road column structure. A new result is
- // red for matching structure and blue for contrasting structure.
- const seq=[];const runs=big.groups;
+ // Standard derived-road comparison using the Big Road's logical
+ // streak columns (not their visual tail columns).
+ const runs=[];
+ for(const cell of big.cells){
+  if(cell.run===0)runs.push([]);
+  runs[runs.length-1].push(cell);
+ }
+ const signals=[];
  for(let col=offset+1;col<runs.length;col++){
   for(let row=0;row<runs[col].length;row++){
+   // The first signal begins on row 2 of column offset+2,
+   // or on row 1 of the next column.
    if(col===offset+1&&row===0)continue;
    let red;
-   if(row===0)red=runs[col-1].length===runs[col-offset-1].length;
-   else {
-    const reference=runs[col-offset-1];
-    const at=reference.length>row;
-    const above=reference.length>row-1;
-    red=at===above;
+   if(row===0){
+    red=runs[col-1].length===runs[col-offset-1].length;
+   }else{
+    const reference=runs[col-offset-1].length;
+    const hasAt=reference>row;
+    const hasAbove=reference>row-1;
+    red=hasAt===hasAbove;
    }
-   seq.push(red?'B':'P');
+   signals.push({v:red?'B':'P',tie:0});
   }
  }
- // Derived road symbols are grouped by consecutive identical colors.
- const result=buildBig(seq).cells;
- return result.map(x=>({...x,tie:0}));
+ return position(signals);
+}
+function draw(id,cells,style){
+ const root=document.getElementById(id);if(!root)return;
+ root.replaceChildren();
+ root.className='road advanced-road '+style;
+ const cols=Math.max(12,...cells.map(x=>x.c+1));
+ root.style.gridTemplateColumns='repeat('+cols+',30px)';
+ root.style.gridTemplateRows='repeat(6,30px)';
+ for(const x of cells){
+  const dot=document.createElement('span');
+  dot.className='roadmark '+(x.v==='B'?'red':'blue')+(x.tie?' with-tie':'');
+  dot.style.gridColumn=String(x.c+1);dot.style.gridRow=String(x.r+1);
+  if(x.tie&&style==='big'){
+   const mark=document.createElement('span');mark.className='tie-count';mark.textContent=x.tie>99?'99+':String(x.tie);dot.appendChild(mark);
+  }
+  dot.title=(style==='big'?(x.v==='B'?'Banker':'Player'):(x.v==='B'?'Red structural mark':'Blue structural mark'))+(x.tie?' · '+x.tie+' tie(s)':'');
+  root.appendChild(dot);
+ }
 }
 function renderRoadmaps(){
- if(!window.hands)return;
- const big=buildBig(window.hands);
- makeBoard('big-road',big.cells,'big');
- makeBoard('big-eye-road',derived(big,1),'derived hollow');
- makeBoard('small-road',derived(big,2),'derived solid');
- makeBoard('cockroach-road',derived(big,3),'derived slash');
- const ties=window.hands.filter(x=>x==='T').length;
- const el=document.getElementById('roadmap-status');
- if(el)el.textContent=big.cells.length+' decisive hands · '+ties+' ties · '+big.groups.length+' Banker/Player runs';
+ const results=window.hands;if(!Array.isArray(results))return;
+ const big=buildBig(results);
+ draw('big-road',big.cells,'big');
+ draw('big-eye-road',derived(big,1),'derived hollow');
+ draw('small-road',derived(big,2),'derived solid');
+ draw('cockroach-road',derived(big,3),'derived slash');
+ const ties=results.filter(x=>x==='T').length;
+ const runs=big.cells.filter(x=>x.run===0).length;
+ const status=document.getElementById('roadmap-status');
+ if(status)status.textContent=big.cells.length+' Banker/Player hands · '+ties+' ties · '+runs+' runs'+(big.leadingTies?' · '+big.leadingTies+' opening tie(s) awaiting first Banker/Player':'');
 }
 window.renderRoadmaps=renderRoadmaps;
+window.BaccaratRoads={position,buildBig,derived};
 })();
