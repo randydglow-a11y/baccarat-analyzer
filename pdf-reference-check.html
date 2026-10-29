@@ -85,7 +85,7 @@ function renderPreview(tokens){
   const candidate=new Map(experimental.map(x=>[(x.c+1)+','+(x.r+1),x.v]));
   const matched=smallReference.filter(x=>candidate.get(x.c+','+x.r)===x.v).length;
   const summary=document.createElement('p');summary.className='coord-note';
-  summary.textContent='Experimental grid-aware calculation: '+matched+'/'+smallReference.length+' PDF cells match (current: '+(smallReference.length-mismatches.length)+'/10). Generated marks: '+experimental.length+' (current: '+generated.length+'). This is a limited diagnostic, NOT a verified replacement.';
+  summary.textContent='Experimental grid-aware calculation: '+matched+'/'+smallReference.length+' PDF cells match (current: '+(smallReference.length-mismatches.length)+'/'+smallReference.length+'). Generated marks: '+experimental.length+' (current: '+generated.length+'). This is a limited diagnostic, NOT a verified replacement.';
   diff.append(summary);
   // Inspect alternative row-comparison conventions without changing production.
   const bigRuns=[];for(const cell of big.cells){if(cell.run===0)bigRuns.push([]);bigRuns[bigRuns.length-1].push(cell)}
