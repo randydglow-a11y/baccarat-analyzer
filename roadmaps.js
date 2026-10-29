@@ -34,27 +34,27 @@ function buildBig(results){
  return {cells:position(decisive),leadingTies:decisive.length?0:leadingTies};
 }
 function derived(big,offset){
- // Standard derived-road comparison using the Big Road's logical
- // streak columns (not their visual tail columns).
+ // Derived road begins at the second mark of Big Road column
+ // (offset + 1), or the first mark of the following column.
+ // offset: 1 Big Eye Boy, 2 Small Road, 3 Cockroach Pig.
  const runs=[];
  for(const cell of big.cells){
   if(cell.run===0)runs.push([]);
   runs[runs.length-1].push(cell);
  }
  const signals=[];
- for(let col=offset+1;col<runs.length;col++){
+ for(let col=offset;col<runs.length;col++){
   for(let row=0;row<runs[col].length;row++){
-   // The first signal begins on row 2 of column offset+2,
-   // or on row 1 of the next column.
-   if(col===offset+1&&row===0)continue;
+   if(col===offset&&row===0)continue;
    let red;
    if(row===0){
+    // Compare the lengths of the two preceding reference columns.
     red=runs[col-1].length===runs[col-offset-1].length;
    }else{
-    const reference=runs[col-offset-1].length;
-    const hasAt=reference>row;
-    const hasAbove=reference>row-1;
-    red=hasAt===hasAbove;
+    // Compare occupancy at the same height and immediately above
+    // in the offset-th preceding Big Road column.
+    const reference=runs[col-offset].length;
+    red=(reference>row)===(reference>row-1);
    }
    signals.push({v:red?'B':'P',tie:0});
   }
