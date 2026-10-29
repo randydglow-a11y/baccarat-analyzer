@@ -8,6 +8,33 @@ check('First Big Road circle is Player with opening Tie',big.cells[0]?.v==='P'&&
 check('Big Road opening streaks',runs.slice(0,10).map(x=>x.v+x.n).join(',')==='P2,B1,P4,B5,P1,B1,P2,B2,P1,B4');
 check('Big Road has 28 streaks',runs.length===28);
 for(const offset of [1,2,3]){const label=['','Big Eye Boy','Small Road','Cockroach Pig'][offset];const full=BaccaratRoads.derived(big,offset);let good=true,at=0;for(let k=1;k<=shoe.length;k++){const partial=BaccaratRoads.derived(BaccaratRoads.buildBig(shoe.slice(0,k)),offset);for(let i=0;i<partial.length;i++)if(!full[i]||['v','c','r'].some(key=>partial[i][key]!==full[i][key])){good=false;at=k;break}if(!good)break}check(label+' chronological stability',good,good?'68 prefixes': 'First failure at hand '+at);const occupied=new Set();let duplicate=false;for(const c of full){const p=c.c+','+c.r;if(occupied.has(p))duplicate=true;occupied.add(p)}check(label+' has no overlapping cells',!duplicate,full.length+' marks')}
+// Independently compute derived colors from the physical Big Road cell grid.
+// This is intentionally separate from the production streak-length formula.
+function physicalDerived(offset){
+ const occupied=new Set(big.cells.map(x=>x.c+','+x.r));
+ const marks=[];let currentRun=-1;
+ for(const cell of big.cells){
+  if(cell.run===0)currentRun++;
+  if(currentRun<offset||(currentRun===offset&&cell.run===0))continue;
+  const anchor=cell.anchor;
+  let red;
+  if(cell.run===0){
+   const height=col=>{let n=0;while(occupied.has(col+','+n))n++;return n};
+   red=height(anchor-1)===height(anchor-offset-1);
+  }else{
+   const reference=anchor-offset;
+   red=occupied.has(reference+','+cell.run)===occupied.has(reference+','+(cell.run-1));
+  }
+  marks.push(red?'B':'P');
+ }
+ return marks;
+}
+for(const offset of [1,2,3]){
+ const expected=physicalDerived(offset);
+ const actual=BaccaratRoads.derived(big,offset).map(x=>x.v);
+ const first=expected.findIndex((x,i)=>x!==actual[i]);
+ check(['','Big Eye Boy','Small Road','Cockroach Pig'][offset]+' physical-cell cross-check',expected.length===actual.length&&first===-1,first>=0?'First difference at mark '+(first+1):expected.length+' signals compared');
+}
 const small=BaccaratRoads.derived(big,2);const top=small.filter(x=>x.r===0&&x.c<24).sort((a,b)=>a.c-b.c);check('PDF Small Road top row (24 circles)',top.length===24&&top.every((x,i)=>x.c===i&&x.v===(i%2?'P':'B')),'Red/blue alternating in screenshot');const c7r2=small.find(x=>x.c===6&&x.r===1);check('PDF Small Road C7 R2 (red)',!!c7r2&&c7r2.v==='B',c7r2?'Generated '+(c7r2.v==='B'?'red':'blue'):'Generated empty — unresolved reference mismatch');
 const root=document.getElementById('results');for(const t of tests){const li=document.createElement('li');li.className=t.pass?'ok':'fail';li.textContent=(t.pass?'PASS: ':'REVIEW: ')+t.name+(t.detail?' — '+t.detail:'');root.appendChild(li)}document.getElementById('summary').textContent=tests.filter(x=>x.pass).length+' of '+tests.length+' checks pass. REVIEW marks a reference disagreement, not necessarily an algorithm defect.';
 </script></html>
