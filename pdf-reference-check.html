@@ -73,6 +73,18 @@ function renderPreview(tokens){
   const actual=new Map(generated.map(x=>[(x.c+1)+','+(x.r+1),x.v]));
   const mismatches=smallReference.filter(x=>actual.get(x.c+','+x.r)!==x.v);
   const p=document.createElement('p');p.className='coord-note';p.textContent='Small Road PDF spot-check (42 manually transcribed visible cells): '+(smallReference.length-mismatches.length)+'/'+smallReference.length+' match. '+(mismatches.length?'First discrepancy: column '+mismatches[0].c+', row '+mismatches[0].r+'; PDF '+(mismatches[0].v==='B'?'red':'blue')+', generated '+(actual.has(mismatches[0].c+','+mismatches[0].r)?(actual.get(mismatches[0].c+','+mismatches[0].r)==='B'?'red':'blue'):'empty')+'.':'No discrepancies in this limited spot-check.')+' This does not verify the entire Small Road.';diff.append(p);
+  const mismatchHeading=document.createElement('h3');mismatchHeading.textContent='All '+mismatches.length+' Small Road reference mismatches';diff.append(mismatchHeading);
+  const mismatchIntro=document.createElement('p');mismatchIntro.className='coord-note';mismatchIntro.textContent='Reference positions are manually transcribed from the PDF and still require visual confirmation. Red/blue describe derived-road colors, not Banker/Player outcomes.';diff.append(mismatchIntro);
+  const mismatchList=document.createElement('ol');mismatchList.style.paddingLeft='24px';
+  const colorName=v=>v==='B'?'red':v==='P'?'blue':'empty';
+  for(const item of mismatches){
+   const li=document.createElement('li');li.style.marginBottom='8px';
+   const got=actual.get(item.c+','+item.r);
+   li.textContent='Column '+item.c+', row '+item.r+' — PDF: '+colorName(item.v)+'; generated: '+colorName(got)+' ('+(got?'different color':'missing at this position')+')';
+   mismatchList.append(li);
+  }
+  if(!mismatches.length){const li=document.createElement('li');li.textContent='No differences in the transcribed reference sample.';mismatchList.append(li)}
+  diff.append(mismatchList);
   const neighborhood=document.createElement('p');neighborhood.className='coord-note';neighborhood.textContent='Generated Small Road near first discrepancy: '+[5,6,7,8,9].map(col=>'C'+col+' ['+[1,2,3].map(row=>{const v=actual.get(col+','+row);return v==='B'?'R':v==='P'?'B':'·'}).join(' ')+']').join('  ')+' (top to bottom; R=red, B=blue, ·=empty). This helps distinguish shifted marks from color differences.';diff.append(neighborhood);
   const trace=document.createElement('p');trace.className='coord-note';
   const first=generated.slice(0,24).map((x,i)=>(i+1)+':'+(x.v==='B'?'R':'B')+'@C'+(x.c+1)+'R'+(x.r+1));
