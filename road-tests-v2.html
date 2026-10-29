@@ -61,6 +61,7 @@ for(let row=1;row<=3;row++)for(const [col,color] of Object.entries(audited[row-1
  else match++;
 }
 check('PDF Small Road lower-row geometry (18 marked cells)',missing===0&&wrong===0,match+' match, '+missing+' missing, '+wrong+' wrong-color; '+differences.slice(0,4).join('; '));
+check('PDF lower-row mismatch is isolated to one circle',missing+wrong<=1,missing+wrong+' disagreements across 18 reference positions');
 const c7r2=small.find(x=>x.c===6&&x.r===1);check('PDF Small Road C7 R2 (red)',!!c7r2&&c7r2.v==='B',c7r2?'Generated '+(c7r2.v==='B'?'red':'blue'):'Generated empty — screenshot visibly contains a red circle; shoe transcription or algorithm needs validation');
 const root=document.getElementById('results');root.replaceChildren();for(const t of tests){const li=document.createElement('li');li.className=t.pass?'ok':'fail';li.textContent=(t.pass?'PASS: ':'REVIEW: ')+t.name+(t.detail?' — '+t.detail:'');root.appendChild(li)}document.getElementById('summary').textContent=tests.filter(x=>x.pass).length+' of '+tests.length+' checks pass. REVIEW marks a reference disagreement, not necessarily an algorithm defect.';
 } catch(err) {document.getElementById('summary').textContent='CHECK FAILED: '+err.message;document.getElementById('results').innerHTML='<li class="fail">Tests stopped: '+String(err.message).replace(/[<>&]/g,'')+'</li>'}
