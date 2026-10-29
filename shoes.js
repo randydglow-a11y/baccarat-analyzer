@@ -14,8 +14,9 @@ state.shoes=state.shoes.filter(s=>s&&typeof s.id==='string').map((s,i)=>({id:s.i
 if(!state.shoes.length){const first=id();state.shoes=[{id:first,name:'Shoe 1',created:new Date().toISOString(),hands:[]}];state.active=first}
 if(!state.shoes.some(s=>s.id===state.active))state.active=state.shoes[0].id;
 const current=()=>state.shoes.find(s=>s.id===state.active);
+window.getBaccaratSavedShoes=()=>state.shoes.map(s=>({name:s.name,hands:s.hands.slice()}));
 function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){alert('Unable to save shoes. Check browser storage.')}sync()}
-function sync(){hands=current().hands;window.hands=hands;render();drawManager()}
+function sync(){hands=current().hands;window.hands=hands;render();drawManager();if(window.refreshAllShoes)window.refreshAllShoes()}
 function drawManager(){
  const select=document.getElementById('shoe-select');if(!select)return;
  select.replaceChildren();
