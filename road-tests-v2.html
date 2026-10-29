@@ -42,6 +42,12 @@ for(const offset of [1,2,3]){
  const first=expected.findIndex((x,i)=>x!==actual[i]);
  check(['','Big Eye Boy','Small Road','Cockroach Pig'][offset]+' alternative-formula cross-check',expected.length===actual.length&&first===-1,first>=0?'First difference at mark '+(first+1):expected.length+' signals compared');
 }
+// Earliest divergence, transcribed chronologically from the PDF Small Road:
+// first four marks are red, blue, red, blue; the fifth is red at C5 R1.
+// The production algorithm instead makes its fifth mark blue at C4 R2.
+const firstFivePdf=['B','P','B','P','B'];
+const actualFirstFive=BaccaratRoads.derived(big,2).slice(0,5).map(x=>x.v);
+check('PDF Small Road first five chronological colors',actualFirstFive.join('')===firstFivePdf.join(''),'PDF '+firstFivePdf.join('')+' vs generated '+actualFirstFive.join(''));
 const small=BaccaratRoads.derived(big,2);const top=small.filter(x=>x.r===0&&x.c<24).sort((a,b)=>a.c-b.c);check('PDF Small Road top row (24 circles)',top.length===24&&top.every((x,i)=>x.c===i&&x.v===(i%2?'P':'B')),'Red/blue alternating in screenshot');// A separate screenshot-geometry audit: the PDF has 24 visible top-row marks
 // and a red mark at column 7, row 2. This is not inferred from the generator.
 const pdfGeometry={topRow:24,redAt:{c:6,r:1}};
