@@ -78,6 +78,30 @@ function renderPreview(tokens){
   const summary=document.createElement('p');summary.className='coord-note';
   summary.textContent='Experimental grid-aware calculation: '+matched+'/10 early PDF cells match (current: '+(smallReference.length-mismatches.length)+'/10). Generated marks: '+experimental.length+' (current: '+generated.length+'). This is a limited diagnostic, NOT a verified replacement.';
   diff.append(summary);
+  // Inspect alternative row-comparison conventions without changing production.
+  const bigRuns=[];for(const cell of big.cells){if(cell.run===0)bigRuns.push([]);bigRuns[bigRuns.length-1].push(cell)}
+  const variants=[
+   {name:'Current reference',fn:(col,row)=>{const len=bigRuns[col-2].length;return (len>row)===(len>row-1)}},
+   {name:'Previous-row comparison',fn:(col,row)=>{const len=bigRuns[col-2].length;return (len>row+1)===(len>row)}},
+   {name:'Reference occupancy at row',fn:(col,row)=>bigRuns[col-2].length>row},
+   {name:'Reference occupancy at next row',fn:(col,row)=>bigRuns[col-2].length>row+1}
+  ];
+  const testVariants=variants.map(variant=>{
+   const signals=[];
+   for(let col=2;col<bigRuns.length;col++){
+    for(let row=0;row<bigRuns[col].length;row++){
+     if(col===2&&row===0)continue;
+     const red=row===0?bigRuns[col-1].length===bigRuns[col-3].length:variant.fn(col,row);
+     signals.push({v:red?'B':'P',tie:0});
+    }
+   }
+   const cells=window.BaccaratRoads.position(signals);
+   const map=new Map(cells.map(x=>[(x.c+1)+','+(x.r+1),x.v]));
+   return {name:variant.name,score:smallReference.filter(x=>map.get(x.c+','+x.r)===x.v).length,trace:signals.slice(0,18).map(x=>x.v==='B'?'R':'B').join('')};
+  });
+  const variantsBox=document.createElement('p');variantsBox.className='coord-note';
+  variantsBox.textContent='Small Road rule experiments (not live): '+testVariants.map(x=>x.name+' '+x.score+'/10; first 18 colors '+x.trace).join(' | ')+'. These are exploratory alternatives; matching 10 cells alone is insufficient to establish casino accuracy.';
+  diff.append(variantsBox);
   const experimentalTitle=document.createElement('h3');experimentalTitle.textContent='Experimental Small Road (not live)';diff.append(experimentalTitle);
   const experimentalGrid=document.createElement('div');experimentalGrid.className='road-grid';
   const columns=Math.max(12,...experimental.map(x=>x.c+1));
