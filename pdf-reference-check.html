@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDF Shoe Reference Checks</title><style>
+*{box-sizing:border-box}body{background:#101827;color:#eef4ff;font:16px system-ui;margin:0;padding:18px}main{max-width:850px;margin:auto}a{color:#9ed5ff}section{background:#1c2b40;padding:16px;border-radius:14px;margin:16px 0}h1{font-size:26px}h2{font-size:19px}label{display:block;margin:12px 0 6px}select,textarea,button{font:inherit;border-radius:9px;padding:10px}select,textarea{background:#0c182a;color:white;border:1px solid #5d708b;width:100%}textarea{min-height:140px}button{background:#285f90;color:white;border:0;margin:8px 8px 8px 0}.muted{color:#c2cddd}.pass{color:#9de4b1}.fail{color:#ffaaaa}table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:8px;border-bottom:1px solid #45536a}code{color:#fff}#preview{white-space:pre-wrap;overflow-wrap:anywhere}</style><main>
+<h1>🃏 PDF shoe reference checks</h1><p class="muted">Compare a hand sequence transcribed from the uploaded 100 Baccarat Shoes PDF against the screenshot's reported totals. This does not modify any saved shoes.</p>
+<section><h2>Reference screenshot</h2><label for="example">PDF page</label><select id="example"><option value="2">Page 2 · 68 hands</option><option value="3">Page 3 · 59 hands</option><option value="4">Page 4 · 68 hands</option><option value="5">Page 5 · 60 hands</option></select><table><thead><tr><th>Outcome</th><th>PDF reference</th><th>Entered</th></tr></thead><tbody><tr><td>Player</td><td id="rp"></td><td id="ap">—</td></tr><tr><td>Banker</td><td id="rb"></td><td id="ab">—</td></tr><tr><td>Tie</td><td id="rt"></td><td id="at">—</td></tr><tr><td>Total</td><td id="rn"></td><td id="an">—</td></tr></tbody></table></section>
+<section><h2>Enter the screenshot's Bead Road</h2><p class="muted">Type B, P, or T in chronological order, separated by spaces or commas. For a six-row Bead Road, read each column from top to bottom, then move to the next column. Don't guess unreadable dots.</p><label for="sequence">Hand sequence</label><textarea id="sequence" spellcheck="false" placeholder="B P T B P ..."></textarea><button id="check">Check against PDF totals</button><button id="reset">Clear input</button><p id="status" aria-live="polite"></p><p class="muted">Passing totals is a prerequisite, not proof of an exact hand-by-hand transcription or matching Big Road / derived road diagrams.</p></section>
+<section><h2>Next verification stage</h2><p class="muted">Once a screenshot's hand sequence passes its total checks, compare its Big Road and three derived roads with the PDF. Record any mismatched cells before changing the algorithm.</p><p><a href="./road-tests.html">Run synthetic roadmap checks</a> · <a href="./">Back to analyzer</a></p></section></main>
+<script>
+const refs={2:{p:27,b:35,t:6},3:{p:30,b:25,t:4},4:{p:36,b:28,t:4},5:{p:31,b:25,t:4}};
+const $=id=>document.getElementById(id);
+function update(){const r=refs[$('example').value];for(const k of ['p','b','t'])$('r'+k).textContent=r[k];$('rn').textContent=r.p+r.b+r.t;for(const k of ['p','b','t','n'])$('a'+k).textContent='—';$('status').textContent=''}
+$('example').addEventListener('change',update);
+$('check').addEventListener('click',()=>{
+ const raw=$('sequence').value.trim().toUpperCase();const tokens=raw.split(/[\s,;|]+/).filter(Boolean);
+ if(!tokens.length){$('status').textContent='Enter a sequence first.';return}
+ if(tokens.some(x=>!['B','P','T'].includes(x))){$('status').textContent='Only B, P, T separated by spaces or commas are accepted.';return}
+ const r=refs[$('example').value],actual={b:tokens.filter(x=>x==='B').length,p:tokens.filter(x=>x==='P').length,t:tokens.filter(x=>x==='T').length,n:tokens.length};
+ for(const k of ['p','b','t','n'])$('a'+k).textContent=actual[k];
+ const pass=actual.p===r.p&&actual.b===r.b&&actual.t===r.t;
+ $('status').className=pass?'pass':'fail';
+ $('status').textContent=pass?'PASS: all four totals match. Next compare the road diagrams visually.':'NOT YET: counts differ from the screenshot. Recheck the transcription.';
+});
+$('reset').addEventListener('click',()=>{$('sequence').value='';update()});update();
+</script></html>
