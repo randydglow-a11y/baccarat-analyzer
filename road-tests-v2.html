@@ -23,6 +23,33 @@ check('VIDEO hand 7: Small Road first two dots red',videoHand7.length>=2&&videoH
 const videoSmall=BaccaratRoads.derived(BaccaratRoads.buildBig(video41),2);
 const videoFirstCol=videoSmall.filter(x=>x.c===0).sort((a,b)=>a.r-b.r);
 check('Video hand 41 Small Road first column (three red)',videoFirstCol.length===3&&videoFirstCol.every((x,i)=>x.r===i&&x.v==='B'),'Reference recording shows red at C1 R1–R3; generated '+(videoFirstCol.map(x=>(x.v==='B'?'red':'blue')+' R'+(x.r+1)).join(', ')||'empty'));
+// Dragon-tail stress cases: derived colors use logical (unwrapped) Big Road depths.
+function independentSignals(hands,offset){
+ const runs=[];for(const h of hands){if(h==='T')continue;if(!runs.length||runs[runs.length-1].v!==h)runs.push({v:h,n:1});else runs[runs.length-1].n++}
+ const marks=[];for(let c=offset;c<runs.length;c++)for(let r=0;r<runs[c].n;r++){
+  if(c===offset&&r===0)continue;
+  const red=r===0?runs[c-1].n===runs[c-offset-1].n:
+   ((runs[c-offset].n>r)===(runs[c-offset].n>r-1));
+  marks.push(red?'B':'P');
+ }return marks.join('');
+}
+const dragonCases=[
+ 'PPPPPPPPPPBBPPPPPPPPPPPPBBPPPPPPPPPPPPBB',
+ 'BBBBBBBBBBBBPPBBBBBBBBBBBBPPBBBBBBBBBBBBPP',
+ 'BPBPBPBPBPBPBPBPBPBP',
+ 'PPPPPPPPPPPPBBBBBBBBBBBBPPPPPPPPPPPPBBBBBBBBBBBB',
+ 'TPPPPPPPPPPPPTBBBTTPPPPPPPPPPPPTBBB'
+];
+for(const offset of [1,2,3]){
+ let ok=true,detail='';
+ for(const sequence of dragonCases){
+  const hands=sequence.split('');
+  const actual=BaccaratRoads.derived(BaccaratRoads.buildBig(hands),offset).map(x=>x.v).join('');
+  const expected=independentSignals(hands,offset);
+  if(actual!==expected){ok=false;detail=sequence+' expected '+expected+' got '+actual;break}
+ }
+ check(['Big Eye Boy','Small Road','Cockroach Pig'][offset-1]+' dragon-tail color stress',ok,ok?'5 synthetic cases with long streaks and ties':detail);
+}
 check('PDF shoe totals',shoe.length===68&&shoe.filter(x=>x==='B').length===35&&shoe.filter(x=>x==='P').length===27&&shoe.filter(x=>x==='T').length===6,shoe.length+' hands');
 check('First Big Road circle is Player with opening Tie',big.cells[0]?.v==='P'&&big.cells[0]?.tie===1);
 check('Big Road opening streaks',runs.slice(0,10).map(x=>x.v+x.n).join(',')==='P2,B1,P4,B5,P1,B1,P2,B2,P1,B4');
