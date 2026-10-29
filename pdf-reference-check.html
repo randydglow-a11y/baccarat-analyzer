@@ -57,13 +57,22 @@ function renderPreview(tokens){
  const host=$('road-previews');host.replaceChildren();
  const checks=$('visual-checks');checks.replaceChildren();
  const big=window.BaccaratRoads.buildBig(tokens);
- const smallReference=[{c:1,r:1,v:'B'},{c:2,r:1,v:'P'},{c:3,r:1,v:'B'},{c:4,r:1,v:'P'},{c:5,r:1,v:'B'},{c:5,r:2,v:'B'},{c:6,r:1,v:'P'},{c:7,r:1,v:'B'},{c:7,r:2,v:'B'},{c:8,r:1,v:'P'}];
+ // Manually read visible PDF page 2 Small Road cells. 1-based coordinates.
+ // Reference is a visual transcription, not an independent casino rule oracle.
+ const pdfTop=Array.from({length:24},(_,i)=>({c:i+1,r:1,v:i%2?'P':'B'}));
+ const pdfLower=[
+  [5,2,'B'],[7,2,'B'],[9,2,'B'],[9,3,'B'],[10,2,'P'],[10,3,'P'],
+  [13,2,'B'],[14,2,'P'],[15,2,'B'],[17,2,'B'],[17,3,'B'],
+  [18,2,'P'],[20,2,'P'],[20,3,'P'],[20,4,'P'],
+  [22,2,'P'],[23,2,'B'],[23,3,'B']
+ ].map(([c,r,v])=>({c,r,v}));
+ const smallReference=[...pdfTop,...pdfLower];
  const diff=$('reference-diff');diff.replaceChildren();
  if($('example').value==='2'){
   const generated=window.BaccaratRoads.derived(big,2);
   const actual=new Map(generated.map(x=>[(x.c+1)+','+(x.r+1),x.v]));
   const mismatches=smallReference.filter(x=>actual.get(x.c+','+x.r)!==x.v);
-  const p=document.createElement('p');p.className='coord-note';p.textContent='Small Road PDF spot-check (10 clearly visible early cells): '+(smallReference.length-mismatches.length)+'/10 match. '+(mismatches.length?'First discrepancy: column '+mismatches[0].c+', row '+mismatches[0].r+'; PDF '+(mismatches[0].v==='B'?'red':'blue')+', generated '+(actual.has(mismatches[0].c+','+mismatches[0].r)?(actual.get(mismatches[0].c+','+mismatches[0].r)==='B'?'red':'blue'):'empty')+'.':'No discrepancies in this limited spot-check.')+' This does not verify the entire Small Road.';diff.append(p);
+  const p=document.createElement('p');p.className='coord-note';p.textContent='Small Road PDF spot-check (42 manually transcribed visible cells): '+(smallReference.length-mismatches.length)+'/'+smallReference.length+' match. '+(mismatches.length?'First discrepancy: column '+mismatches[0].c+', row '+mismatches[0].r+'; PDF '+(mismatches[0].v==='B'?'red':'blue')+', generated '+(actual.has(mismatches[0].c+','+mismatches[0].r)?(actual.get(mismatches[0].c+','+mismatches[0].r)==='B'?'red':'blue'):'empty')+'.':'No discrepancies in this limited spot-check.')+' This does not verify the entire Small Road.';diff.append(p);
   const neighborhood=document.createElement('p');neighborhood.className='coord-note';neighborhood.textContent='Generated Small Road near first discrepancy: '+[5,6,7,8,9].map(col=>'C'+col+' ['+[1,2,3].map(row=>{const v=actual.get(col+','+row);return v==='B'?'R':v==='P'?'B':'·'}).join(' ')+']').join('  ')+' (top to bottom; R=red, B=blue, ·=empty). This helps distinguish shifted marks from color differences.';diff.append(neighborhood);
   const trace=document.createElement('p');trace.className='coord-note';
   const first=generated.slice(0,24).map((x,i)=>(i+1)+':'+(x.v==='B'?'R':'B')+'@C'+(x.c+1)+'R'+(x.r+1));
@@ -76,7 +85,7 @@ function renderPreview(tokens){
   const candidate=new Map(experimental.map(x=>[(x.c+1)+','+(x.r+1),x.v]));
   const matched=smallReference.filter(x=>candidate.get(x.c+','+x.r)===x.v).length;
   const summary=document.createElement('p');summary.className='coord-note';
-  summary.textContent='Experimental grid-aware calculation: '+matched+'/10 early PDF cells match (current: '+(smallReference.length-mismatches.length)+'/10). Generated marks: '+experimental.length+' (current: '+generated.length+'). This is a limited diagnostic, NOT a verified replacement.';
+  summary.textContent='Experimental grid-aware calculation: '+matched+'/'+smallReference.length+' PDF cells match (current: '+(smallReference.length-mismatches.length)+'/10). Generated marks: '+experimental.length+' (current: '+generated.length+'). This is a limited diagnostic, NOT a verified replacement.';
   diff.append(summary);
   // Inspect alternative row-comparison conventions without changing production.
   const bigRuns=[];for(const cell of big.cells){if(cell.run===0)bigRuns.push([]);bigRuns[bigRuns.length-1].push(cell)}
@@ -100,7 +109,7 @@ function renderPreview(tokens){
    return {name:variant.name,score:smallReference.filter(x=>map.get(x.c+','+x.r)===x.v).length,trace:signals.slice(0,18).map(x=>x.v==='B'?'R':'B').join('')};
   });
   const variantsBox=document.createElement('p');variantsBox.className='coord-note';
-  variantsBox.textContent='Small Road rule experiments (not live): '+testVariants.map(x=>x.name+' '+x.score+'/10; first 18 colors '+x.trace).join(' | ')+'. These are exploratory alternatives; matching 10 cells alone is insufficient to establish casino accuracy.';
+  variantsBox.textContent='Small Road rule experiments (not live): '+testVariants.map(x=>x.name+' '+x.score+'/'+smallReference.length+'; first 18 colors '+x.trace).join(' | ')+'. These are exploratory alternatives; matching this limited sample alone is insufficient to establish casino accuracy.';
   diff.append(variantsBox);
   const experimentalTitle=document.createElement('h3');experimentalTitle.textContent='Experimental Small Road (not live)';diff.append(experimentalTitle);
   const experimentalGrid=document.createElement('div');experimentalGrid.className='road-grid';
