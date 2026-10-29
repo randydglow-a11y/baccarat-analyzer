@@ -23,6 +23,36 @@ $('check').addEventListener('click',()=>{
 
 });
 
+
+function experimentalDerived(big,offset){
+ // Experimental alternative: compare the actual displayed Big Road grid.
+ // Keep this separate from the production algorithm until reference verified.
+ const runs=[];
+ for(const x of big.cells){if(x.run===0)runs.push([]);runs[runs.length-1].push(x)}
+ const occupied=new Set(big.cells.map(x=>x.c+','+x.r));
+ const heights=new Map();
+ for(const x of big.cells)heights.set(x.c,Math.max(heights.get(x.c)||0,x.r+1));
+ const signals=[];
+ for(let col=offset;col<runs.length;col++){
+  for(let row=0;row<runs[col].length;row++){
+   if(col===offset&&row===0)continue;
+   const current=runs[col][row];
+   let red;
+   if(row===0){
+    const prev=runs[col-1][0].c;
+    const ref=runs[col-offset-1][0].c;
+    red=(heights.get(prev)||0)===(heights.get(ref)||0);
+   }else{
+    const ref=runs[col-offset][0].c;
+    const y=current.r;
+    red=occupied.has(ref+','+y)===occupied.has(ref+','+(y-1));
+   }
+   signals.push({v:red?'B':'P',tie:0});
+  }
+ }
+ return window.BaccaratRoads.position(signals);
+}
+
 function renderPreview(tokens){
  const host=$('road-previews');host.replaceChildren();
  const checks=$('visual-checks');checks.replaceChildren();
@@ -42,6 +72,19 @@ function renderPreview(tokens){
   const warning=document.createElement('p');warning.className='coord-note';
   warning.textContent='Diagnostic: generated Small Road marks 9–16 form an eight-mark blue streak (including a bottom-row tail). The PDF reference shows a shorter blue streak in this early region. This is a color/run-generation discrepancy to investigate, not a missing single red dot. No live algorithm change has been made.';
   diff.append(warning);
+  const experimental=experimentalDerived(big,2);
+  const candidate=new Map(experimental.map(x=>[(x.c+1)+','+(x.r+1),x.v]));
+  const matched=smallReference.filter(x=>candidate.get(x.c+','+x.r)===x.v).length;
+  const summary=document.createElement('p');summary.className='coord-note';
+  summary.textContent='Experimental grid-aware calculation: '+matched+'/10 early PDF cells match (current: '+(smallReference.length-mismatches.length)+'/10). Generated marks: '+experimental.length+' (current: '+generated.length+'). This is a limited diagnostic, NOT a verified replacement.';
+  diff.append(summary);
+  const experimentalTitle=document.createElement('h3');experimentalTitle.textContent='Experimental Small Road (not live)';diff.append(experimentalTitle);
+  const experimentalGrid=document.createElement('div');experimentalGrid.className='road-grid';
+  const columns=Math.max(12,...experimental.map(x=>x.c+1));
+  experimentalGrid.style.gridTemplateColumns='repeat('+columns+',19px)';
+  experimentalGrid.style.gridTemplateRows='repeat(6,19px)';
+  for(const x of experimental){const dot=document.createElement('span');dot.className='road-cell filled '+x.v.toLowerCase();dot.style.gridColumn=x.c+1;dot.style.gridRow=x.r+1;dot.title='Column '+(x.c+1)+', row '+(x.r+1);experimentalGrid.append(dot)}
+  const experimentalWrap=document.createElement('div');experimentalWrap.className='road-container';experimentalWrap.append(experimentalGrid);diff.append(experimentalWrap);
  }
  const roads=[['Big Road',big.cells,'hollow'],['Big Eye Boy',window.BaccaratRoads.derived(big,1),'hollow'],['Small Road',window.BaccaratRoads.derived(big,2),'filled'],['Cockroach Pig',window.BaccaratRoads.derived(big,3),'slash']];
  for(const [name,cells,style] of roads){
