@@ -47,6 +47,20 @@ const small=BaccaratRoads.derived(big,2);const top=small.filter(x=>x.r===0&&x.c<
 const pdfGeometry={topRow:24,redAt:{c:6,r:1}};
 const producedAt=small.filter(x=>x.c===pdfGeometry.redAt.c&&x.r===pdfGeometry.redAt.r);
 check('PDF Small Road reference geometry independently recorded',pdfGeometry.topRow===24&&pdfGeometry.redAt.c===6&&pdfGeometry.redAt.r===1,'Reference image: 24 top-row marks, red at C7 R2');
+// Manually audited colored cells in the enlarged PDF Small Road screenshot.
+// Coordinates are 1-based; red=B, blue=P. Blank positions are not assumed.
+const referenceSecondRow={5:'B',7:'B',9:'B',10:'P',13:'B',14:'P',15:'B',17:'B',18:'P',20:'P',22:'P',23:'B'};
+const referenceThirdRow={9:'B',10:'P',17:'B',20:'P',23:'B'};
+const referenceFourthRow={20:'P'};
+const audited=[referenceSecondRow,referenceThirdRow,referenceFourthRow];
+let match=0,missing=0,wrong=0;const differences=[];
+for(let row=1;row<=3;row++)for(const [col,color] of Object.entries(audited[row-1])){
+ const cell=small.find(x=>x.c===Number(col)-1&&x.r===row);
+ if(!cell){missing++;differences.push('C'+col+' R'+(row+1)+': empty, PDF '+(color==='B'?'red':'blue'))}
+ else if(cell.v!==color){wrong++;differences.push('C'+col+' R'+(row+1)+': wrong color')}
+ else match++;
+}
+check('PDF Small Road lower-row geometry (18 marked cells)',missing===0&&wrong===0,match+' match, '+missing+' missing, '+wrong+' wrong-color; '+differences.slice(0,4).join('; '));
 const c7r2=small.find(x=>x.c===6&&x.r===1);check('PDF Small Road C7 R2 (red)',!!c7r2&&c7r2.v==='B',c7r2?'Generated '+(c7r2.v==='B'?'red':'blue'):'Generated empty — screenshot visibly contains a red circle; shoe transcription or algorithm needs validation');
 const root=document.getElementById('results');root.replaceChildren();for(const t of tests){const li=document.createElement('li');li.className=t.pass?'ok':'fail';li.textContent=(t.pass?'PASS: ':'REVIEW: ')+t.name+(t.detail?' — '+t.detail:'');root.appendChild(li)}document.getElementById('summary').textContent=tests.filter(x=>x.pass).length+' of '+tests.length+' checks pass. REVIEW marks a reference disagreement, not necessarily an algorithm defect.';
 } catch(err) {document.getElementById('summary').textContent='CHECK FAILED: '+err.message;document.getElementById('results').innerHTML='<li class="fail">Tests stopped: '+String(err.message).replace(/[<>&]/g,'')+'</li>'}
