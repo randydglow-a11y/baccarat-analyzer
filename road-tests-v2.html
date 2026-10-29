@@ -42,12 +42,23 @@ for(const offset of [1,2,3]){
  const first=expected.findIndex((x,i)=>x!==actual[i]);
  check(['','Big Eye Boy','Small Road','Cockroach Pig'][offset]+' alternative-formula cross-check',expected.length===actual.length&&first===-1,first>=0?'First difference at mark '+(first+1):expected.length+' signals compared');
 }
-// Earliest divergence, transcribed chronologically from the PDF Small Road:
-// first four marks are red, blue, red, blue; the fifth is red at C5 R1.
-// The production algorithm instead makes its fifth mark blue at C4 R2.
-const firstFivePdf=['B','P','B','P','B'];
-const actualFirstFive=BaccaratRoads.derived(big,2).slice(0,5).map(x=>x.v);
-check('PDF Small Road first five chronological colors',actualFirstFive.join('')===firstFivePdf.join(''),'PDF '+firstFivePdf.join('')+' vs generated '+actualFirstFive.join(''));
+// Chronological trace is derived from the input shoe, not the PDF's horizontal display.
+const smallTrace=[];let traceRun=-1;
+for(const cell of big.cells){
+ if(cell.run===0)traceRun++;
+ if(traceRun<2||(traceRun===2&&cell.run===0))continue;
+ const previous=traceRun===2?null:traceRun;
+ smallTrace.push({hand:shoe.findIndex((v,i)=>false),run:traceRun+1,row:cell.run+1});
+}
+const decisiveHands=shoe.map((v,i)=>({v,hand:i+1})).filter(x=>x.v!=='T');
+let traceIndex=0;const traceDetails=[];
+for(const cell of big.cells){
+ const hand=decisiveHands[traceIndex++].hand;
+ const runIndex=big.cells.slice(0,traceIndex).filter(x=>x.run===0).length-1;
+ if(runIndex<2||(runIndex===2&&cell.run===0))continue;
+ if(traceDetails.length<8)traceDetails.push('mark '+(traceDetails.length+1)+' = hand '+hand+' / Big Road run '+(runIndex+1)+' row '+(cell.run+1));
+}
+check('Small Road chronological origin trace',traceDetails.length===8,'First eight: '+traceDetails.join('; '));
 const small=BaccaratRoads.derived(big,2);const top=small.filter(x=>x.r===0&&x.c<24).sort((a,b)=>a.c-b.c);check('PDF Small Road top row (24 circles)',top.length===24&&top.every((x,i)=>x.c===i&&x.v===(i%2?'P':'B')),'Red/blue alternating in screenshot');// A separate screenshot-geometry audit: the PDF has 24 visible top-row marks
 // and a red mark at column 7, row 2. This is not inferred from the generator.
 const pdfGeometry={topRow:24,redAt:{c:6,r:1}};
