@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 const ROWS=6;
-function position(results){
+function position(results,displayRows=ROWS){
  const cells=[],occupied=new Set();
  let previous=null,anchor=0,c=0,r=0,run=0;
  for(const item of results){
@@ -15,7 +15,7 @@ function position(results){
    c=anchor;r=0;run=0;
   }else{
    const below=r+1;
-   if(below<ROWS&&!occupied.has(c+','+below))r=below;
+   if(below<displayRows&&!occupied.has(c+','+below))r=below;
    else c++;
    while(occupied.has(c+','+r))c++;
   }
@@ -67,11 +67,14 @@ function derived(big,offset){
 function draw(id,cells,style){
  const root=document.getElementById(id);if(!root)return;
  root.replaceChildren();
+ const displayRows=window.getRoadDisplayRows?window.getRoadDisplayRows():ROWS;
+ // Reposition only the final marks. Never recompute derived signals using display geometry.
+ const visible=displayRows===ROWS?cells:position(cells.map(x=>({v:x.v,tie:x.tie||0})),displayRows);
  root.className='road advanced-road '+style;
- const cols=Math.max(12,...cells.map(x=>x.c+1));
+ const cols=Math.max(12,...visible.map(x=>x.c+1));
  root.style.gridTemplateColumns='repeat('+cols+',30px)';
- root.style.gridTemplateRows='repeat(6,30px)';
- for(const x of cells){
+ root.style.gridTemplateRows='repeat('+displayRows+',30px)';
+ for(const x of visible){
   const dot=document.createElement('span');
   dot.className='roadmark '+(x.v==='B'?'red':'blue')+(x.tie?' with-tie':'');
   dot.style.gridColumn=String(x.c+1);dot.style.gridRow=String(x.r+1);
