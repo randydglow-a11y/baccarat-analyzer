@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Baccarat Road Tests</title><style>body{font:16px system-ui;background:#101a2a;color:white;padding:24px}li{margin:9px 0}.ok{color:#8fe2b0}.fail{color:#ff9b9b}</style><h1>Roadmap regression checks</h1><p>These are synthetic rule checks, not yet verified against every PDF screenshot.</p><ol id="results"></ol><script src="roadmaps.js"></script><script>
+const {buildBig,derived}=window.BaccaratRoads;
+let failures=0;
+function check(label,fn){const el=document.createElement('li');try{if(!fn())throw Error('unexpected result');el.textContent='PASS — '+label;el.className='ok'}catch(e){failures++;el.textContent='FAIL — '+label+': '+e.message;el.className='fail'}document.getElementById('results').append(el)}
+check('Empty shoe has no road cells',()=>buildBig([]).cells.length===0);
+check('Opening ties attach to first decisive hand',()=>buildBig(['T','T','B']).cells[0].tie===2);
+check('All-tie shoe retains opening tie count',()=>buildBig(['T','T']).leadingTies===2);
+check('Seven consecutive Banker results occupy seven distinct cells',()=>{const a=buildBig(Array(7).fill('B')).cells;return new Set(a.map(x=>x.c+','+x.r)).size===7&&a[6].r===5&&a[6].c===1});
+check('Big Eye Boy starts at second mark of second Big Road column',()=>derived(buildBig(['B','P','P']),1).length===1);
+check('Small Road starts at second mark of third Big Road column',()=>derived(buildBig(['B','P','B','B']),2).length===1);
+check('Cockroach Pig starts at second mark of fourth Big Road column',()=>derived(buildBig(['B','P','B','P','P']),3).length===1);
+check('Big Eye Boy first new-column mark compares two prior lengths',()=>{const x=derived(buildBig(['B','P','P','B']),1);return x.length===2&&x[1].v==='P'});
+check('Ties do not add derived-road marks',()=>derived(buildBig(['B','P','P','T','B']),1).length===2);
+document.body.insertAdjacentHTML('beforeend','<strong>'+ (failures?'Some checks failed':'All checks passed')+'</strong>');
+</script></html>
