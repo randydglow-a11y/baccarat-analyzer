@@ -4,18 +4,21 @@
 <style>body{font:16px system-ui;background:#101b2b;color:#e9f2ff;max-width:850px;margin:auto;padding:18px}textarea{width:100%;height:110px;background:#071120;color:white;border:1px solid #6983a8;border-radius:8px;padding:12px;box-sizing:border-box}button{background:#286bb4;color:white;border:0;padding:12px;border-radius:8px;margin:12px 0}table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid #40516a;padding:8px;text-align:left}th{position:sticky;top:0;background:#152943}code{color:#9fe6c6}p{line-height:1.5}.scroll{overflow-x:auto}.warn{color:#ffd17e}</style>
 <h1>Small Road: hand-by-hand trace</h1>
 <p>Independent diagnostic page. This does not alter the live analyzer or saved shoes. Paste the reference shoe's chronological B/P/T results (or load a shoe from this browser). The table shows exactly which Big Road hand produces each Small Road mark and why.</p>
-<button id="load">Load current browser shoe</button>
+<button id="load">Load current browser shoe</button> <button id="pdfload">Load PDF page 2 reference (68 hands)</button>
 <textarea id="input" placeholder="Paste results such as B P B B T P ..."></textarea>
 <button id="run">Trace results</button><p id="summary"></p><section id="audit" style="border:1px solid #6983a8;border-radius:10px;padding:14px;margin:14px 0" aria-live="polite"><strong>Small Road integrity audit</strong><p id="audit-result">Load a shoe and tap Trace results to test the starting rule and historical consistency.</p></section><div class="scroll"><table><thead><tr><th>Hand</th><th>Outcome</th><th>Big Road run / mark</th><th>Big Road cell</th><th>Small mark #</th><th>Comparison</th><th>Color</th><th>Small cell</th></tr></thead><tbody id="rows"></tbody></table></div>
 <p class="warn">Derived-road colors are structural indicators, not Banker/Player predictions. This diagnostic reproduces the current implementation; it does not establish casino-standard accuracy.</p>
 <script src="roadmaps.js"></script><script>
 const $=id=>document.getElementById(id);
+const pdfReference="T P P B P P\nP T T P B B\nB B B T P B\nP P B T B P\nB B B B P T\nB B P B B B\nB B B P P B\nB P P B P B\nP B B B B B\nP P P B P B\nB B P P P P\nP B";
+$('pdfload').onclick=()=>{$('input').value=pdfReference;trace()};
 $('load').onclick=()=>{let v=[];try{v=JSON.parse(localStorage.getItem('baccarat-analyzer-hands-v1')||'[]')}catch(e){}$('input').value=v.join(' ');trace()};
 $('run').onclick=trace;
 function trace(){
 const raw=$('input').value.trim().toUpperCase();
 const hands=raw.split(/[\s,;|]+/).filter(Boolean);
 if(hands.some(v=>!['B','P','T'].includes(v))){$('summary').textContent='Use B, P, T separated by spaces or commas.';return}
+if(!hands.length){$('summary').textContent='No hands loaded. Tap Load PDF page 2 reference (68 hands) to run a meaningful audit.';$('audit-result').textContent='NOT RUN: No hands entered. A PASS requires at least one hand.';$('rows').replaceChildren();return}
 const big=BaccaratRoads.buildBig(hands);
 const cells=big.cells;const runs=[];for(const cell of cells){if(cell.run===0)runs.push([]);runs[runs.length-1].push(cell)}
 const marks=BaccaratRoads.derived(big,2);let n=0;let decisive=0;
