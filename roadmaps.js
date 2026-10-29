@@ -9,6 +9,9 @@ function position(results){
   const v=item.v;
   if(v!==previous){
    anchor=previous===null?0:anchor+1;
+   // A long streak can bend across the top of a later column.
+   // Never start a new streak on a previously occupied cell.
+   while(occupied.has(anchor+',0'))anchor++;
    c=anchor;r=0;run=0;
   }else{
    const below=r+1;
