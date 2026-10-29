@@ -1,0 +1,58 @@
+/* Version 5 shoe management. Keeps original single-shoe data on first upgrade. */
+(function(){
+'use strict';
+const STORE='baccarat-analyzer-shoes-v1',OLD='baccarat-analyzer-hands-v1';
+const valid=a=>Array.isArray(a)?a.filter(v=>v==='B'||v==='P'||v==='T'):[];
+const id=()=>String(Date.now())+'-'+Math.random().toString(36).slice(2,8);
+let state;
+try{state=JSON.parse(localStorage.getItem(STORE)||'null')}catch(e){}
+if(!state||!Array.isArray(state.shoes)||!state.shoes.length){
+ let old=[];try{old=valid(JSON.parse(localStorage.getItem(OLD)||'[]'))}catch(e){}
+ const first=id();state={active:first,shoes:[{id:first,name:'Shoe 1',created:new Date().toISOString(),hands:old}]};
+}
+state.shoes=state.shoes.filter(s=>s&&typeof s.id==='string').map((s,i)=>({id:s.id,name:String(s.name||'Shoe '+(i+1)),created:s.created||new Date().toISOString(),hands:valid(s.hands)}));
+if(!state.shoes.length){const first=id();state.shoes=[{id:first,name:'Shoe 1',created:new Date().toISOString(),hands:[]}];state.active=first}
+if(!state.shoes.some(s=>s.id===state.active))state.active=state.shoes[0].id;
+const current=()=>state.shoes.find(s=>s.id===state.active);
+function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){alert('Unable to save shoes. Check browser storage.')}sync()}
+function sync(){hands=current().hands;window.hands=hands;render();drawManager()}
+function drawManager(){
+ const select=document.getElementById('shoe-select');if(!select)return;
+ select.replaceChildren();
+ for(const s of state.shoes){const option=document.createElement('option');option.value=s.id;option.textContent=s.name+' ('+s.hands.length+' hands)';select.appendChild(option)}
+ select.value=state.active;
+ const meta=document.getElementById('shoe-meta');meta.textContent=state.shoes.length+' saved shoe(s) · '+current().hands.length+' hands in current shoe';
+ const list=document.getElementById('shoe-list');list.replaceChildren();
+ for(const s of [...state.shoes].reverse()){
+  const line=document.createElement('div');line.className='shoe-line';
+  const info=document.createElement('span');info.textContent=s.name+' · '+s.hands.length+' hands · '+[s.hands.filter(v=>v==='B').length,s.hands.filter(v=>v==='P').length,s.hands.filter(v=>v==='T').length].join('/')+' B/P/T';
+  const btn=document.createElement('button');btn.className='secondary';btn.textContent=s.id===state.active?'Viewing':'View';btn.disabled=s.id===state.active;btn.onclick=()=>{state.active=s.id;save()};
+  line.append(info,btn);list.appendChild(line);
+ }
+}
+document.getElementById('shoe-select').addEventListener('change',e=>{state.active=e.target.value;save()});
+document.getElementById('new-shoe').addEventListener('click',()=>{
+ const name=prompt('Name the new shoe (optional):','Shoe '+(state.shoes.length+1));if(name===null)return;
+ const s={id:id(),name:name.trim().slice(0,60)||'Shoe '+(state.shoes.length+1),created:new Date().toISOString(),hands:[]};
+ state.shoes.push(s);state.active=s.id;save();
+});
+document.getElementById('rename-shoe').addEventListener('click',()=>{
+ const name=prompt('Rename this shoe:',current().name);if(name===null)return;
+ if(name.trim()){current().name=name.trim().slice(0,60);save()}
+});
+document.getElementById('delete-shoe').addEventListener('click',()=>{
+ if(state.shoes.length===1){alert('Keep at least one shoe. Use Clear session to empty it.');return}
+ if(!confirm('Permanently delete '+current().name+' and all its recorded hands?'))return;
+ state.shoes=state.shoes.filter(s=>s.id!==state.active);state.active=state.shoes[state.shoes.length-1].id;save();
+});
+add=function(v){if(['B','P','T'].includes(v)){current().hands.push(v);save()}};
+undo=function(){if(current().hands.length){current().hands.pop();save()}};
+clearAll=function(){if(confirm('Clear every hand in '+current().name+'? Other shoes will not be changed.')){current().hands=[];save()}};
+downloadCSV=function(){
+ const s=current();if(!s.hands.length){alert('Record a hand before exporting.');return}
+ const csv='Shoe,Hand,Result\n'+s.hands.map((v,i)=>'"'+s.name.replace(/"/g,'""')+'",'+(i+1)+','+names[v]).join('\n');
+ const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+ const a=document.createElement('a');a.href=url;a.download='baccarat-'+s.name.replace(/[^a-z0-9_-]/gi,'-')+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+sync();save();
+})();
