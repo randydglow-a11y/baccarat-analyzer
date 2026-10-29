@@ -38,5 +38,6 @@ function renderPreview(tokens){
   const label=document.createElement('label');label.className='checkrow';const cb=document.createElement('input');cb.type='checkbox';cb.addEventListener('change',()=>{const n=checks.querySelectorAll('input:checked').length;$('comparison-status').textContent=n+'/4 roads marked as visually checked by you. This is not an automated pixel comparison.'});label.append(cb,document.createTextNode(' I visually checked '+name+' against PDF page '+$('example').value));checks.append(label);
  }
 }
-\n$('reset').addEventListener('click',()=>{$('sequence').value='';update()});update();
+
+$('reset').addEventListener('click',()=>{$('sequence').value='';update()});update();
 </script></html>
