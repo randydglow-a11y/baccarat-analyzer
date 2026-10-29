@@ -63,6 +63,12 @@ const readerPig=BaccaratRoads.derived(readerBig,3);
 check('Independent reader Small Road top row C1–C10',colorsAt(readerSmall,1,1,10)==='RURURURURU','Expected RURURURURU; got '+colorsAt(readerSmall,1,1,10));
 check('Independent reader Small Road second row C4–C6',colorsAt(readerSmall,2,4,6)==='URU','Expected URU; got '+colorsAt(readerSmall,2,4,6));
 check('Independent reader Small Road third row C5–C6',colorsAt(readerSmall,3,5,6)==='RU','Expected RU; got '+colorsAt(readerSmall,3,5,6));
+
+check('Independent reader Small Road fourth row C6',colorsAt(readerSmall,4,6,6)==='U','Expected blue; got '+colorsAt(readerSmall,4,6,6));
+check('Independent reader Small Road fifth row C6',colorsAt(readerSmall,5,6,6)==='U','Expected blue; got '+colorsAt(readerSmall,5,6,6));
+check('Independent reader Small Road bottom row C6–C8',colorsAt(readerSmall,6,6,8)==='UUU','Expected blue-blue-blue; got '+colorsAt(readerSmall,6,6,8));
+const readerEye=BaccaratRoads.derived(readerBig,1);
+check('Independent reader Big Eye Boy top row C2–C10',colorsAt(readerEye,1,2,10)==='URURURURU','Expected alternating blue-red; got '+colorsAt(readerEye,1,2,10));
 check('Independent reader Cockroach Pig top row C2–C10',colorsAt(readerPig,1,2,10)==='URURURURU','Expected URURURURU; got '+colorsAt(readerPig,1,2,10));
 check('PDF shoe totals',shoe.length===68&&shoe.filter(x=>x==='B').length===35&&shoe.filter(x=>x==='P').length===27&&shoe.filter(x=>x==='T').length===6,shoe.length+' hands');
 check('First Big Road circle is Player with opening Tie',big.cells[0]?.v==='P'&&big.cells[0]?.tie===1);
