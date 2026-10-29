@@ -54,5 +54,30 @@ downloadCSV=function(){
  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
  const a=document.createElement('a');a.href=url;a.download='baccarat-'+s.name.replace(/[^a-z0-9_-]/gi,'-')+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
+
+function backupAll(){
+ const payload={app:'baccarat-analyzer',version:1,exported:new Date().toISOString(),shoes:state.shoes,active:state.active};
+ const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+ const a=document.createElement('a');a.href=url;a.download='baccarat-all-shoes-backup.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+async function restoreAll(file){
+ if(!file)return;
+ try{
+  if(file.size>5*1024*1024)throw Error('Backup is too large (5 MB limit).');
+  const data=JSON.parse(await file.text());
+  if(data.app!=='baccarat-analyzer'||data.version!==1||!Array.isArray(data.shoes)||!data.shoes.length||data.shoes.length>500)throw Error('Not a supported Baccarat Analyzer backup.');
+  const parsed=data.shoes.map((s,i)=>{
+   if(!s||typeof s!=='object'||!Array.isArray(s.hands)||s.hands.length>100000||s.hands.some(v=>!['B','P','T'].includes(v)))throw Error('Invalid hand history in backup.');
+   return {id:id(),name:String(s.name||'Restored shoe '+(i+1)).slice(0,60),created:typeof s.created==='string'?s.created:new Date().toISOString(),hands:[...s.hands]};
+  });
+  if(!confirm('Import '+parsed.length+' shoe(s)? They will be added to your existing shoes.'))return;
+  state.shoes.push(...parsed);state.active=parsed[0].id;save();
+  alert('Restored '+parsed.length+' shoe(s). Existing shoes were preserved.');
+ }catch(e){alert('Could not restore backup: '+e.message)}
+ finally{document.getElementById('restore-file').value=''}
+}
+document.getElementById('backup-all').addEventListener('click',backupAll);
+document.getElementById('restore-file').addEventListener('change',e=>restoreAll(e.target.files[0]));
+
 sync();save();
 })();
