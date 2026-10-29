@@ -11,5 +11,14 @@ check('Small Road starts at second mark of third Big Road column',()=>derived(bu
 check('Cockroach Pig starts at second mark of fourth Big Road column',()=>derived(buildBig(['B','P','B','P','P']),3).length===1);
 check('Big Eye Boy first new-column mark compares two prior lengths',()=>{const x=derived(buildBig(['B','P','P','B']),1);return x.length===2&&x[1].v==='P'});
 check('Ties do not add derived-road marks',()=>derived(buildBig(['B','P','P','T','B']),1).length===2);
+
+const page2='TPPBPPPTTPBBBBBTPBPPBTBPBBBBPTBBPBBBBBBPPBBPPBPBPBBBBBPPPBPBBBPPPPPB'.split('');
+const page2Runs=['P2','B1','P4','B5','P1','B1','P2','B2','P1','B4','P1','B2','P1','B6','P2','B2','P2','B1','P1','B1','P1','B5','P3','B1','P1','B3','P5','B1'];
+check('PDF page 2 transcription has 68 hands (35 B, 27 P, 6 T)',()=>page2.length===68&&page2.filter(v=>v==='B').length===35&&page2.filter(v=>v==='P').length===27&&page2.filter(v=>v==='T').length===6);
+check('PDF page 2 Big Road has 62 decisive marks and 28 runs',()=>{const a=buildBig(page2).cells;return a.length===62&&a.filter(x=>x.run===0).length===28});
+check('PDF page 2 Big Road streak sequence matches independently transcribed run lengths',()=>{const a=buildBig(page2).cells;const runs=[];for(const x of a){if(x.run===0)runs.push(x.v+'1');else runs[runs.length-1]=x.v+String(x.run+1)}return JSON.stringify(runs)===JSON.stringify(page2Runs)});
+check('PDF page 2 Big Road positions have no overlapping cells',()=>{const a=buildBig(page2).cells;return new Set(a.map(x=>x.c+','+x.r)).size===a.length});
+check('PDF page 2 tie count remains six across Big Road marks',()=>buildBig(page2).cells.reduce((sum,x)=>sum+x.tie,0)===6);
+
 document.body.insertAdjacentHTML('beforeend','<strong>'+ (failures?'Some checks failed':'All checks passed')+'</strong>');
 </script></html>
