@@ -1,0 +1,19 @@
+name: Verify baccarat roads
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'roadmaps.js'
+      - 'verify-roads.cjs'
+      - '.github/workflows/verify-roads.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run 41-hand reference and stability checks
+        run: node verify-roads.cjs
