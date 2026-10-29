@@ -14,6 +14,27 @@ check('PDF shoe totals',shoe.length===68&&shoe.filter(x=>x==='B').length===35&&s
 check('First Big Road circle is Player with opening Tie',big.cells[0]?.v==='P'&&big.cells[0]?.tie===1);
 check('Big Road opening streaks',runs.slice(0,10).map(x=>x.v+x.n).join(',')==='P2,B1,P4,B5,P1,B1,P2,B2,P1,B4');
 check('Big Road has 28 streaks',runs.length===28);
+// Big Road must not move or recolor earlier cells when later hands arrive.
+let bigStable=true,bigFailure=0,bigOverlap=false;
+for(let k=1;k<=shoe.length;k++){
+ const prefix=BaccaratRoads.buildBig(shoe.slice(0,k)).cells;
+ const complete=big.cells.slice(0,prefix.length);
+ if(prefix.some((x,i)=>x.v!==complete[i].v||x.c!==complete[i].c||x.r!==complete[i].r)){
+  bigStable=false;bigFailure=k;break;
+ }
+ const occupied=new Set(prefix.map(x=>x.c+','+x.r));
+ if(occupied.size!==prefix.length){bigOverlap=true;break}
+}
+check('Big Road historical positions never shift',bigStable,bigStable?'68 prefixes stable':'First mismatch at hand '+bigFailure);
+check('Big Road never overlaps cells',!bigOverlap,'All 68 prefixes checked');
+let tieInvariant=true;
+for(let k=1;k<=shoe.length;k++){
+ const prefix=shoe.slice(0,k);
+ const b=BaccaratRoads.buildBig(prefix);
+ const assigned=b.cells.reduce((sum,x)=>sum+x.tie,0)+b.leadingTies;
+ if(assigned!==prefix.filter(x=>x==='T').length){tieInvariant=false;break}
+}
+check('Tie marks remain accounted for at every hand',tieInvariant,'68 prefixes checked');
 for(const offset of [1,2,3]){const label=['','Big Eye Boy','Small Road','Cockroach Pig'][offset];const full=BaccaratRoads.derived(big,offset);let good=true,at=0;for(let k=1;k<=shoe.length;k++){const partial=BaccaratRoads.derived(BaccaratRoads.buildBig(shoe.slice(0,k)),offset);for(let i=0;i<partial.length;i++)if(!full[i]||['v','c','r'].some(key=>partial[i][key]!==full[i][key])){good=false;at=k;break}if(!good)break}check(label+' chronological stability',good,good?'68 prefixes': 'First failure at hand '+at);const occupied=new Set();let duplicate=false;for(const c of full){const p=c.c+','+c.r;if(occupied.has(p))duplicate=true;occupied.add(p)}check(label+' has no overlapping cells',!duplicate,full.length+' marks')}
 // Independently compute derived colors from the physical Big Road cell grid.
 // This is intentionally separate from the production streak-length formula.
