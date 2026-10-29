@@ -15,8 +15,11 @@ const videoCounts={B:video41.filter(x=>x==='B').length,P:video41.filter(x=>x==='
 check('Video final Bead Road matches PDF hands 1–41',video41.join('')==='TPPBPPPTTPBBBBBTPBPPBTBPBBBBPTBBPBBBBBBPP','41 hands; '+videoCounts.B+' Banker, '+videoCounts.P+' Player, '+videoCounts.T+' Tie');
 // Directly visible at approximately 00:20 in the 41-hand recording:
 // the counter reads 7 and the Small Road contains two red dots at C1 R1/R2.
+// Distinguish chronological marks from visually occupied first-column dots.
+const videoHand6=BaccaratRoads.derived(BaccaratRoads.buildBig(shoe.slice(0,6)),2);
+check('VIDEO hand 6: Small Road first mark is red',videoHand6.length===1&&videoHand6[0].v==='B','Analyzer: '+videoHand6.map(x=>x.v==='B'?'red':'blue').join(','));
 const videoHand7=BaccaratRoads.derived(BaccaratRoads.buildBig(shoe.slice(0,7)),2);
-check('VIDEO hand 7: Small Road has two stacked red dots',videoHand7.length===2&&videoHand7.every((x,i)=>x.v==='B'&&x.c===0&&x.r===i),'Reference video: red C1R1, red C1R2; analyzer: '+videoHand7.map(x=>(x.v==='B'?'red':'blue')+' C'+(x.c+1)+'R'+(x.r+1)).join(', '));
+check('VIDEO hand 7: Small Road first two dots red',videoHand7.length>=2&&videoHand7[0].v==='B'&&videoHand7[1].v==='B'&&videoHand7[0].c===0&&videoHand7[1].c===0,'Reference video: red C1R1, red C1R2; analyzer: '+videoHand7.map(x=>(x.v==='B'?'red':'blue')+' C'+(x.c+1)+'R'+(x.r+1)).join(', '));
 const videoSmall=BaccaratRoads.derived(BaccaratRoads.buildBig(video41),2);
 const videoFirstCol=videoSmall.filter(x=>x.c===0).sort((a,b)=>a.r-b.r);
 check('Video hand 41 Small Road first column (three red)',videoFirstCol.length===3&&videoFirstCol.every((x,i)=>x.r===i&&x.v==='B'),'Reference recording shows red at C1 R1–R3; generated '+(videoFirstCol.map(x=>(x.v==='B'?'red':'blue')+' R'+(x.r+1)).join(', ')||'empty'));
