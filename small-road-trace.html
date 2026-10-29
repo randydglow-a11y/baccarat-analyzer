@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Small Road hand-by-hand diagnostic</title>
+<style>body{font:16px system-ui;background:#101b2b;color:#e9f2ff;max-width:850px;margin:auto;padding:18px}textarea{width:100%;height:110px;background:#071120;color:white;border:1px solid #6983a8;border-radius:8px;padding:12px;box-sizing:border-box}button{background:#286bb4;color:white;border:0;padding:12px;border-radius:8px;margin:12px 0}table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid #40516a;padding:8px;text-align:left}th{position:sticky;top:0;background:#152943}code{color:#9fe6c6}p{line-height:1.5}.scroll{overflow-x:auto}.warn{color:#ffd17e}</style>
+<h1>Small Road: hand-by-hand trace</h1>
+<p>Independent diagnostic page. This does not alter the live analyzer or saved shoes. Paste the reference shoe's chronological B/P/T results (or load a shoe from this browser). The table shows exactly which Big Road hand produces each Small Road mark and why.</p>
+<button id="load">Load current browser shoe</button>
+<textarea id="input" placeholder="Paste results such as B P B B T P ..."></textarea>
+<button id="run">Trace results</button><p id="summary"></p><div class="scroll"><table><thead><tr><th>Hand</th><th>Outcome</th><th>Big Road run / mark</th><th>Big Road cell</th><th>Small mark #</th><th>Comparison</th><th>Color</th><th>Small cell</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p class="warn">Derived-road colors are structural indicators, not Banker/Player predictions. This diagnostic reproduces the current implementation; it does not establish casino-standard accuracy.</p>
+<script src="roadmaps.js"></script><script>
+const $=id=>document.getElementById(id);
+$('load').onclick=()=>{let v=[];try{v=JSON.parse(localStorage.getItem('baccarat-analyzer-hands-v1')||'[]')}catch(e){}$('input').value=v.join(' ');trace()};
+$('run').onclick=trace;
+function trace(){
+const raw=$('input').value.trim().toUpperCase();
+const hands=raw.split(/[\s,;|]+/).filter(Boolean);
+if(hands.some(v=>!['B','P','T'].includes(v))){$('summary').textContent='Use B, P, T separated by spaces or commas.';return}
+const big=BaccaratRoads.buildBig(hands);
+const cells=big.cells;const runs=[];for(const cell of cells){if(cell.run===0)runs.push([]);runs[runs.length-1].push(cell)}
+const marks=BaccaratRoads.derived(big,2);let n=0;let decisive=0;
+const rows=[];let run=-1;
+for(let i=0;i<hands.length;i++){
+const hand=hands[i];if(hand==='T'){rows.push([i+1,'Tie','—','—','—','No derived mark','—','—']);continue}
+const cell=cells[decisive++];if(cell.run===0)run++;
+let reason='Not started',color='—',mark='—',pos='—';
+if(run>=2&&!(run===2&&cell.run===0)){
+let red;
+if(cell.run===0){const a=runs[run-1].length,b=runs[run-3].length;red=a===b;reason='New column: prior run '+a+' vs run 3 back '+b}
+else{const ref=runs[run-2].length;const here=ref>cell.run,above=ref>cell.run-1;red=here===above;reason='Same run: reference length '+ref+'; at row '+(cell.run+1)+'='+here+', above='+above}
+const m=marks[n];mark=++n;color=red?'RED':'BLUE';pos=m?'C'+(m.c+1)+' R'+(m.r+1):'missing';
+}
+rows.push([i+1,hand,'Run '+(run+1)+' / mark '+(cell.run+1),'C'+(cell.c+1)+' R'+(cell.r+1),mark,reason,color,pos]);
+}
+$('rows').replaceChildren();for(const row of rows){const tr=document.createElement('tr');for(const v of row){const td=document.createElement('td');td.textContent=v;tr.appendChild(td)}$('rows').appendChild(tr)}
+$('summary').textContent=hands.length+' hands · '+cells.length+' decisive hands · '+runs.length+' Big Road runs · '+marks.length+' Small Road marks. First mismatch in the manually transcribed PDF: Small Road C7 R2; inspect marks around that region.';
+}
+</script></html>
