@@ -8,7 +8,7 @@ function position(results){
  for(const item of results){
   const v=item.v;
   if(v!==previous){
-   anchor=previous===null?0:Math.max(anchor+1,c+1);
+   anchor=previous===null?0:anchor+1;
    c=anchor;r=0;run=0;
   }else{
    const below=r+1;
