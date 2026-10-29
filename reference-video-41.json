@@ -1,0 +1,42 @@
+{
+  "source": "User screen recording, 2026-10-29",
+  "handCount": 41,
+  "results": "TPPBPPPTTPBBBBBTPBPPBTBPBBBBPTBBPBBBBBBPP",
+  "counts": {
+    "B": 21,
+    "P": 14,
+    "T": 6
+  },
+  "checkpoints": [
+    {
+      "hand": 5,
+      "smallRoad": []
+    },
+    {
+      "hand": 6,
+      "smallRoad": [
+        {
+          "column": 1,
+          "row": 1,
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "hand": 7,
+      "smallRoad": [
+        {
+          "column": 1,
+          "row": 1,
+          "color": "red"
+        },
+        {
+          "column": 1,
+          "row": 2,
+          "color": "red"
+        }
+      ]
+    }
+  ],
+  "notes": "Reference observations, not inferred standard road rules. Hand 7 differs from current roadmaps.js."
+}
