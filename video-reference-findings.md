@@ -12,3 +12,21 @@ Sources:
 - https://wsgc.wa.gov/sites/default/files/2024-06/Baccarat%20Game%20Description_WA-specific_v2.3.1.pdf
 
 **Status: unresolved reference-specific difference.** Do not change the live derived road logic to force a red mark without checking further video checkpoints and determining the reference application's actual rule. The video-grounded regression in `road-tests-v2.html` intentionally documents this discrepancy.
+
+## Hand-by-hand trace of the first seven outcomes
+
+| Hand | Result | Decisive Big Road run | Small Road under current code |
+|---|---|---|---|
+| 1 | Tie | none | none |
+| 2 | Player | P run 1, row 1 | none |
+| 3 | Player | P run 1, row 2 | none |
+| 4 | Banker | B run 2, row 1 | none |
+| 5 | Player | P run 3, row 1 | none |
+| 6 | Player | P run 3, row 2 | red |
+| 7 | Player | P run 3, row 3 | blue |
+
+At hand 7 the comparison is Big Road column 1 (Player) at row 3 versus row 2. Row 3 is empty while row 2 is occupied, so the standard algorithm yields blue. The video screenshot was previously interpreted as two red marks at counter 7. **This is not yet proof of a reference-specific rule:** the screenshot's mark-to-road association and timing must be checked before changing production.
+
+The currently used implementation compares logical run depths. The official rule uses *physical cell occupancy* and special handling for dragon tails. We should build a physical-cell reference implementation and compare it against the existing algorithm for long runs, without replacing the live implementation prematurely.
+
+Source: https://wsgc.wa.gov/sites/default/files/2025-02/3187%20Baccarat%20-%20Approval%20Letter%20ETG%20%28updated%29signed_0.pdf
