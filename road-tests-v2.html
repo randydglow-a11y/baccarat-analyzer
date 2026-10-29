@@ -5,6 +5,11 @@ const shoe="T P P B P P P T T P B B B B B T P B P P B T B P B B B B P T B B P B 
 const tests=[];function check(name,pass,detail=''){tests.push({name,pass,detail})}
 const big=BaccaratRoads.buildBig(shoe);
 const runs=[];for(const c of big.cells){if(c.run===0)runs.push({v:c.v,n:0});runs[runs.length-1].n++}
+// Independently transcribed from the PDF bead plate, column-by-column (top to bottom).
+const beadColumns=['TPPBPP','PTTPBB','BBBT PB'.replace(/ /g,''),'PPBTBP','BBBBPT','BBPBBB','BBBPPB','BPPBPB','PBBBBB','PPPB PB'.replace(/ /g,''),'BBPPPP','PB'];
+const beadFromImage=beadColumns.join('').split('');
+const mismatch=shoe.findIndex((v,i)=>v!==beadFromImage[i]);
+check('PDF bead plate transcription (12 columns)',mismatch===-1&&shoe.length===beadFromImage.length,mismatch<0?'All 68 hands match the manually verified bead columns':'First mismatch at hand '+(mismatch+1));
 check('PDF shoe totals',shoe.length===68&&shoe.filter(x=>x==='B').length===35&&shoe.filter(x=>x==='P').length===27&&shoe.filter(x=>x==='T').length===6,shoe.length+' hands');
 check('First Big Road circle is Player with opening Tie',big.cells[0]?.v==='P'&&big.cells[0]?.tie===1);
 check('Big Road opening streaks',runs.slice(0,10).map(x=>x.v+x.n).join(',')==='P2,B1,P4,B5,P1,B1,P2,B2,P1,B4');
