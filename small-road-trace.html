@@ -6,7 +6,7 @@
 <p>Independent diagnostic page. This does not alter the live analyzer or saved shoes. Paste the reference shoe's chronological B/P/T results (or load a shoe from this browser). The table shows exactly which Big Road hand produces each Small Road mark and why.</p>
 <button id="load">Load current browser shoe</button>
 <textarea id="input" placeholder="Paste results such as B P B B T P ..."></textarea>
-<button id="run">Trace results</button><p id="summary"></p><div class="scroll"><table><thead><tr><th>Hand</th><th>Outcome</th><th>Big Road run / mark</th><th>Big Road cell</th><th>Small mark #</th><th>Comparison</th><th>Color</th><th>Small cell</th></tr></thead><tbody id="rows"></tbody></table></div>
+<button id="run">Trace results</button><p id="summary"></p><section id="audit" style="border:1px solid #6983a8;border-radius:10px;padding:14px;margin:14px 0" aria-live="polite"><strong>Small Road integrity audit</strong><p id="audit-result">Load a shoe and tap Trace results to test the starting rule and historical consistency.</p></section><div class="scroll"><table><thead><tr><th>Hand</th><th>Outcome</th><th>Big Road run / mark</th><th>Big Road cell</th><th>Small mark #</th><th>Comparison</th><th>Color</th><th>Small cell</th></tr></thead><tbody id="rows"></tbody></table></div>
 <p class="warn">Derived-road colors are structural indicators, not Banker/Player predictions. This diagnostic reproduces the current implementation; it does not establish casino-standard accuracy.</p>
 <script src="roadmaps.js"></script><script>
 const $=id=>document.getElementById(id);
@@ -19,6 +19,24 @@ if(hands.some(v=>!['B','P','T'].includes(v))){$('summary').textContent='Use B, P
 const big=BaccaratRoads.buildBig(hands);
 const cells=big.cells;const runs=[];for(const cell of cells){if(cell.run===0)runs.push([]);runs[runs.length-1].push(cell)}
 const marks=BaccaratRoads.derived(big,2);let n=0;let decisive=0;
+const stable=marks.map(x=>x.v);
+let firstFailure=null,checked=0,firstSignal=null;
+for(let k=1;k<=hands.length;k++){
+ const prefix=hands.slice(0,k);
+ const partial=BaccaratRoads.derived(BaccaratRoads.buildBig(prefix),2);
+ if(partial.length&&!firstSignal)firstSignal=k;
+ checked++;
+ for(let j=0;j<partial.length;j++){
+  if(!marks[j]||partial[j].v!==marks[j].v||partial[j].c!==marks[j].c||partial[j].r!==marks[j].r){
+   firstFailure={hand:k,mark:j+1,partial:partial[j],full:marks[j]};break;
+  }
+ }
+ if(firstFailure)break;
+}
+const audit=$('audit-result');
+audit.textContent=firstFailure
+ ? 'FAIL: At hand '+firstFailure.hand+', Small Road mark #'+firstFailure.mark+' differs from the full-shoe calculation. Investigate future-result leakage before changing any road.'
+ : 'PASS: '+checked+' chronological prefixes checked. Previously drawn Small Road circles never change color or position when later hands arrive. '+(firstSignal?'First Small Road circle appears at hand '+firstSignal+'.':'Not enough Big Road columns yet for a Small Road circle.')+' This checks consistency, not agreement with the PDF.';
 const rows=[];let run=-1;
 for(let i=0;i<hands.length;i++){
 const hand=hands[i];if(hand==='T'){rows.push([i+1,'Tie','—','—','—','No derived mark','—','—']);continue}
