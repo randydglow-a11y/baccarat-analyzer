@@ -39,6 +39,9 @@ function renderPreview(tokens){
   const first=generated.slice(0,24).map((x,i)=>(i+1)+':'+(x.v==='B'?'R':'B')+'@C'+(x.c+1)+'R'+(x.r+1));
   trace.textContent='Small Road first 24 generated marks (chronological): '+first.join(' · ')+'. Use this to identify whether the missing PDF mark was shifted or its color differs.';
   diff.append(trace);
+  const warning=document.createElement('p');warning.className='coord-note';
+  warning.textContent='Diagnostic: generated Small Road marks 9–16 form an eight-mark blue streak (including a bottom-row tail). The PDF reference shows a shorter blue streak in this early region. This is a color/run-generation discrepancy to investigate, not a missing single red dot. No live algorithm change has been made.';
+  diff.append(warning);
  }
  const roads=[['Big Road',big.cells,'hollow'],['Big Eye Boy',window.BaccaratRoads.derived(big,1),'hollow'],['Small Road',window.BaccaratRoads.derived(big,2),'filled'],['Cockroach Pig',window.BaccaratRoads.derived(big,3),'slash']];
  for(const [name,cells,style] of roads){
