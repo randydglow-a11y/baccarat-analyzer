@@ -49,3 +49,20 @@ The 00:22 frame at counter 8 was cropped to show all three derived-road panels s
 The earlier documentation used hand 7 at 00:20; the 00:22 frame corroborates the road identity, but it is a different counter (8). Keep the exact timestamp and hand counter attached to each observation. The video UI's large colored outcome overlay can obscure parts of the display.
 
 No rule change is justified yet from this crop alone.
+
+## Independent Baccarat Roadmap Reader comparison (second recording, 2026-10-29)
+
+The user recorded `baccaratcalc.com` displaying the completed 41-hand shoe. Its Bead Plate shows the same sequence as the 41-hand fixture. The visible **Small Road** portion was compared with `roadmaps.js` derived output at offset 2.
+
+Our calculated Small Road grid (R=red, U=blue, .=empty; 1-based columns):
+```
+row 1 RURURURURURURURU
+row 2 ...URU....R.R.RU
+row 3 ....RU........R
+row 4 .....U
+row 5 .....U
+row 6 .....UUU
+```
+The independently recorded simulator screenshot visibly agrees with the **first ten columns of row 1** (RURURURURU), **columns 4–6 of row 2** (URU), and **columns 5–6 of row 3** (RU). These are the portions unobscured by the mobile browser's toolbar; this is not yet an exhaustive cell-by-cell comparison.
+
+**Interpretation:** The current implementation agrees with an independent roadmap reader for the inspected portion of the 41-hand Small Road. The original video hand-7 observation remains a conflict between reference displays; do not force a production change based solely on that observation. Next verify the other roads and the remaining visible Small Road cells, especially after scrolling to avoid the toolbar overlay.
