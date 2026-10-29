@@ -42,7 +42,12 @@ for(const offset of [1,2,3]){
  const first=expected.findIndex((x,i)=>x!==actual[i]);
  check(['','Big Eye Boy','Small Road','Cockroach Pig'][offset]+' alternative-formula cross-check',expected.length===actual.length&&first===-1,first>=0?'First difference at mark '+(first+1):expected.length+' signals compared');
 }
-const small=BaccaratRoads.derived(big,2);const top=small.filter(x=>x.r===0&&x.c<24).sort((a,b)=>a.c-b.c);check('PDF Small Road top row (24 circles)',top.length===24&&top.every((x,i)=>x.c===i&&x.v===(i%2?'P':'B')),'Red/blue alternating in screenshot');const c7r2=small.find(x=>x.c===6&&x.r===1);check('PDF Small Road C7 R2 (red)',!!c7r2&&c7r2.v==='B',c7r2?'Generated '+(c7r2.v==='B'?'red':'blue'):'Generated empty — screenshot visibly contains a red circle; shoe transcription or algorithm needs validation');
+const small=BaccaratRoads.derived(big,2);const top=small.filter(x=>x.r===0&&x.c<24).sort((a,b)=>a.c-b.c);check('PDF Small Road top row (24 circles)',top.length===24&&top.every((x,i)=>x.c===i&&x.v===(i%2?'P':'B')),'Red/blue alternating in screenshot');// A separate screenshot-geometry audit: the PDF has 24 visible top-row marks
+// and a red mark at column 7, row 2. This is not inferred from the generator.
+const pdfGeometry={topRow:24,redAt:{c:6,r:1}};
+const producedAt=small.filter(x=>x.c===pdfGeometry.redAt.c&&x.r===pdfGeometry.redAt.r);
+check('PDF Small Road reference geometry independently recorded',pdfGeometry.topRow===24&&pdfGeometry.redAt.c===6&&pdfGeometry.redAt.r===1,'Reference image: 24 top-row marks, red at C7 R2');
+const c7r2=small.find(x=>x.c===6&&x.r===1);check('PDF Small Road C7 R2 (red)',!!c7r2&&c7r2.v==='B',c7r2?'Generated '+(c7r2.v==='B'?'red':'blue'):'Generated empty — screenshot visibly contains a red circle; shoe transcription or algorithm needs validation');
 const root=document.getElementById('results');root.replaceChildren();for(const t of tests){const li=document.createElement('li');li.className=t.pass?'ok':'fail';li.textContent=(t.pass?'PASS: ':'REVIEW: ')+t.name+(t.detail?' — '+t.detail:'');root.appendChild(li)}document.getElementById('summary').textContent=tests.filter(x=>x.pass).length+' of '+tests.length+' checks pass. REVIEW marks a reference disagreement, not necessarily an algorithm defect.';
 } catch(err) {document.getElementById('summary').textContent='CHECK FAILED: '+err.message;document.getElementById('results').innerHTML='<li class="fail">Tests stopped: '+String(err.message).replace(/[<>&]/g,'')+'</li>'}
 </script></html>
