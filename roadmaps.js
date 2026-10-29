@@ -69,7 +69,11 @@ function draw(id,cells,style){
  root.replaceChildren();
  const displayRows=window.getRoadDisplayRows?window.getRoadDisplayRows():ROWS;
  // Reposition only the final marks. Never recompute derived signals using display geometry.
- const visible=displayRows===ROWS?cells:position(cells.map(x=>({v:x.v,tie:x.tie||0})),displayRows);
+ // Nonstandard display heights use Bead Plate-style chronological wrapping.
+ // Standard six-row mode retains the authentic baccarat streak geometry.
+ const visible=displayRows===ROWS?cells:cells.map((x,i)=>({
+  ...x,c:Math.floor(i/displayRows),r:i%displayRows
+ }));
  root.className='road advanced-road '+style;
  const cols=Math.max(12,...visible.map(x=>x.c+1));
  root.style.gridTemplateColumns='repeat('+cols+',30px)';
