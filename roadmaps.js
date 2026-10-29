@@ -82,6 +82,41 @@ function draw(id,cells,style){
   root.appendChild(dot);
  }
 }
+function renderNextPreview(results){
+ const root=document.getElementById('next-road-options');
+ if(!root)return;
+ root.replaceChildren();
+ for(const side of ['B','P']){
+  const panel=document.createElement('div');
+  panel.className='next-option';
+  const heading=document.createElement('strong');
+  heading.textContent=side==='B'?'If Banker wins':'If Player wins';
+  heading.style.color=side==='B'?'#ff7b8c':'#7cb5ff';
+  panel.appendChild(heading);
+  const marks=document.createElement('div');
+  marks.className='next-marks';
+  const before=buildBig(results),after=buildBig([...results,side]);
+  for(const [offset,label,style] of [[1,'Big Eye','hollow'],[2,'Small','solid'],[3,'Cockroach','slash']]){
+   const a=derived(before,offset),b=derived(after,offset);
+   const pair=document.createElement('span');
+   pair.className='next-pair';
+   const mark=document.createElement('span');
+   if(b.length>a.length){
+    const value=b[b.length-1].v;
+    mark.className='next-mark '+(value==='B'?'red':'blue')+' '+style;
+    mark.title=label+': '+(value==='B'?'red':'blue');
+   }else{
+    mark.className='next-mark';
+    mark.textContent='—';
+    mark.title=label+': not started';
+   }
+   const text=document.createElement('span');
+   text.textContent=label;
+   pair.append(mark,text);marks.appendChild(pair);
+  }
+  panel.appendChild(marks);root.appendChild(panel);
+ }
+}
 function renderRoadmaps(){
  const results=window.hands;if(!Array.isArray(results))return;
  const big=buildBig(results);
@@ -89,6 +124,7 @@ function renderRoadmaps(){
  draw('big-eye-road',derived(big,1),'derived hollow');
  draw('small-road',derived(big,2),'derived solid');
  draw('cockroach-road',derived(big,3),'derived slash');
+ renderNextPreview(results);
  const ties=results.filter(x=>x==='T').length;
  const runs=big.cells.filter(x=>x.run===0).length;
  const status=document.getElementById('roadmap-status');
