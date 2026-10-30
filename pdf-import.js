@@ -56,15 +56,29 @@ function pointerPoint(canvas,event){
 }
 function attachCrop(canvas){
  activeCanvas=canvas;
- canvas.addEventListener('pointerdown',event=>{dragStart=pointerPoint(canvas,event);canvas.setPointerCapture(event.pointerId)});
- canvas.addEventListener('pointerup',event=>{
-  if(!dragStart)return;
-  const end=pointerPoint(canvas,event),x=Math.min(end.x,dragStart.x),y=Math.min(end.y,dragStart.y),w=Math.abs(end.x-dragStart.x),h=Math.abs(end.y-dragStart.y);dragStart=null;
-  if(w<20||h<30){report('Drag around the full six-row Bead Road to select it.');return}
+ canvas.style.touchAction='none';
+ let start=null;
+ function point(event){return pointerPoint(canvas,event)}
+ function finish(end){
+  if(!start)return;
+  const x=Math.min(end.x,start.x),y=Math.min(end.y,start.y),w=Math.abs(end.x-start.x),h=Math.abs(end.y-start.y);start=null;
+  if(w<12||h<20){report('Selection too small. Touch and hold, then drag diagonally around the six-row Bead Road.');return}
   calibration={x:x/canvas.width,y:y/canvas.height,w:w/canvas.width,h:h/canvas.height};
-  report('Bead Road selected. Tap Read selected page, then verify the extracted B/P/T against the PDF totals.');
- });
+  report('Bead Road selected! Tap Read selected page. You can drag again to adjust the selection.');
+ }
+ canvas.addEventListener('pointerdown',event=>{
+  event.preventDefault();start=point(event);
+  try{canvas.setPointerCapture(event.pointerId)}catch(e){}
+  report('Selecting Bead Road… keep dragging to the opposite corner.');
+ },{passive:false});
+ canvas.addEventListener('pointermove',event=>{if(start)event.preventDefault()},{passive:false});
+ canvas.addEventListener('pointerup',event=>{event.preventDefault();finish(point(event))},{passive:false});
+ canvas.addEventListener('pointercancel',()=>{start=null;report('Selection canceled. Try again.')});
+ // iOS Safari fallback for devices that do not reliably deliver pointer events.
+ canvas.addEventListener('touchstart',event=>{if(start)return;event.preventDefault();const t=event.changedTouches[0];start=point(t)},{passive:false});
+ canvas.addEventListener('touchend',event=>{if(!start)return;event.preventDefault();finish(point(event.changedTouches[0]))},{passive:false});
 }
+
 function classify(data,w,h,x,y,r){
  let b=0,p=0,t=0,seen=0;
  const rad=Math.max(2,Math.floor(r*.32));
