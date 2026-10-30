@@ -2,7 +2,7 @@
 'use strict';
 const host=document.getElementById('bet-backtest');if(!host)return;
 const panel=document.createElement('section');panel.className='panel';panel.id='custom-cockroach';
-panel.innerHTML='<h2>🐛 Custom Cockroach: 4-Row Mismatch</h2><p class="muted">Compare the next Cockroach mark with the same row in the previous 4-row column. Bet only when exactly one possible Banker/Player result creates a mismatch. After each loss, double plus 1 unit across columns; reset after a win. Stop the shoe immediately after the first winning bet. Stop betting within a column after a win or four losses. Ties push. Choose a maximum stake; exceeding it skips the rest of that column and resets to 1 unit for the next.</p><div class="actions"><label>Shoes <select id="cc-count"><option value="25">25</option><option value="100" selected>100</option><option value="500">500</option><option value="1000">1,000</option></select></label><label>Max stake <select id="cc-cap"><option value="16">16 units</option><option value="64" selected>64 units</option><option value="256">256 units</option><option value="1024">1,024 units</option></select></label><button id="cc-run" class="player" disabled>Test my strategy</button></div><p id="cc-status" class="muted">Upload the simulation file above to enable testing.</p><div id="cc-stats" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"></div><p class="muted" style="font-size:12px">Four-row columns use chronological wrapping of the Cockroach marks, matching the app’s 4-row display. No bets are made where both hypothetical outcomes yield the same comparison, or the previous column has no corresponding row. This is an experimental interpretation of your rules.</p>';
+panel.innerHTML='<h2>🐛 Custom Cockroach: 4-Row Mismatch</h2><p class="muted">Compare the next Cockroach mark with the same row in the previous 4-row column. Bet only when exactly one possible Banker/Player result creates a mismatch. After each loss, double plus 1 unit across columns; reset after a win. Stop the shoe immediately after the first winning bet. Stop betting within a column after a win or four losses. Ties push and the exact same side and stake are repeated on the next hand. Choose a maximum stake; exceeding it skips the rest of that column and resets to 1 unit for the next.</p><div class="actions"><label>Shoes <select id="cc-count"><option value="25">25</option><option value="100" selected>100</option><option value="500">500</option><option value="1000">1,000</option></select></label><label>Max stake <select id="cc-cap"><option value="16">16 units</option><option value="64" selected>64 units</option><option value="256">256 units</option><option value="1024">1,024 units</option></select></label><button id="cc-run" class="player" disabled>Test my strategy</button></div><p id="cc-status" class="muted">Upload the simulation file above to enable testing.</p><div id="cc-stats" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"></div><p class="muted" style="font-size:12px">Four-row columns use chronological wrapping of the Cockroach marks, matching the app’s 4-row display. No bets are made where both hypothetical outcomes yield the same comparison, or the previous column has no corresponding row. This is an experimental interpretation of your rules.</p>';
 host.insertAdjacentElement('afterend',panel);
 const $=id=>document.getElementById(id);let dataset=null;
 window.addEventListener('baccarat-simulation-file',e=>{dataset=e.detail.rows;$('cc-run').disabled=false;$('cc-status').textContent=dataset.size.toLocaleString()+' shoes available.'});
@@ -20,15 +20,16 @@ function nextSignal(history){
 async function run(shoes){
  const result={bets:0,wins:0,losses:0,pushes:0,net:0,peak:0,drawdown:0,stakeMax:0,maxLossRun:0,lossRun:0,completed:0,exhausted:0,capStops:0,twoWinShoes:0};
  for(let j=0;j<shoes.length;j++){
-  const history=[];let column=-1,lossesInColumn=0,stopped=false,stake=1,columnWins=0;const cap=Number($('cc-cap').value);
+  const history=[];let column=-1,lossesInColumn=0,stopped=false,stake=1,columnWins=0,pendingTieBet=null;const cap=Number($('cc-cap').value);
   for(const outcome of shoes[j]){
    const signal=nextSignal(history);
-   if(signal&&signal.col!==column){column=signal.col;lossesInColumn=0;stopped=false}
-   if(signal&&!stopped&&signal.bet){
+   if(!pendingTieBet&&signal&&signal.col!==column){column=signal.col;lossesInColumn=0;stopped=false}
+   const bet=pendingTieBet||(signal&&!stopped?signal.bet:null);
+   if(bet){
     if(stake>cap){stopped=true;stake=1;result.capStops++;history.push(outcome);continue}result.stakeMax=Math.max(result.stakeMax,stake);result.bets++;
-    if(outcome==='T')result.pushes++;
-    else if(outcome===signal.bet){result.wins++;result.net+=stake*(signal.bet==='B'?.95:1);result.lossRun=0;stake=1;stopped=true;columnWins++;result.completed++}
-    else{result.losses++;result.net-=stake;stake=stake*2+1;lossesInColumn++;result.lossRun++;result.maxLossRun=Math.max(result.maxLossRun,result.lossRun);if(lossesInColumn>=4){stopped=true;result.exhausted++}}
+    if(outcome==='T'){result.pushes++;pendingTieBet=bet;}
+    else if(outcome===bet){pendingTieBet=null;result.wins++;result.net+=stake*(bet==='B'?.95:1);result.lossRun=0;stake=1;stopped=true;columnWins++;result.completed++}
+    else{pendingTieBet=null;result.losses++;result.net-=stake;stake=stake*2+1;lossesInColumn++;result.lossRun++;result.maxLossRun=Math.max(result.maxLossRun,result.lossRun);if(lossesInColumn>=4){stopped=true;result.exhausted++}}
     result.peak=Math.max(result.peak,result.net);result.drawdown=Math.max(result.drawdown,result.peak-result.net);
    }
    history.push(outcome);
