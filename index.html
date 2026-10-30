@@ -60,8 +60,39 @@ body.roads-focus .advanced-road .roadmark{width:34px;height:34px}
 body.roads-focus .advanced-road{gap:5px}
 body.roads-focus .roadwrap{overflow-x:auto}
 @media(orientation:landscape){body.roads-focus .advanced-road .roadmark{width:38px;height:38px}body.roads-focus .roadmark{font-size:14px}}
+</style><style>
+#gameplay-compact-toggle{background:#176a87;white-space:nowrap}
+body.compact-gameplay main{padding:5px;max-width:none}
+body.compact-gameplay #dashboard-controls{margin:0 0 5px;padding:5px 7px;gap:4px;border-radius:8px}
+body.compact-gameplay #dashboard-controls strong{font-size:12px}
+body.compact-gameplay #dashboard-controls button{padding:9px 8px;font-size:12px;min-width:32px}
+body.compact-gameplay .dashboard-nav,body.compact-gameplay main>h1,body.compact-gameplay main>p.muted,body.compact-gameplay main>.actions,body.compact-gameplay .dashboard-tools,body.compact-gameplay #visual-leaderboard-scope{display:none!important}
+body.compact-gameplay section.panel{padding:7px;margin:5px 0;border-radius:9px}
+body.compact-gameplay section.panel h2{font-size:14px;margin:0 0 4px}
+body.compact-gameplay section.panel p.muted,body.compact-gameplay section.panel .roadmap-help{font-size:11px;margin:3px 0}
+body.compact-gameplay .roadwrap{padding-bottom:2px}
+body.compact-gameplay .road,body.compact-gameplay .advanced-road{gap:2px;padding:3px}
+body.compact-gameplay .advanced-road .roadmark{width:23px;height:23px;border-width:2px;font-size:9px}
+body.compact-gameplay .road .dot{width:23px;height:23px;font-size:10px}
+body.compact-gameplay .road{grid-auto-columns:25px!important;grid-template-rows:repeat(6,25px)}
+body.compact-gameplay .next-road-preview{padding:6px;margin:5px 0}
+body.compact-gameplay .next-option{padding:5px}
+body.compact-gameplay .next-option strong{font-size:11px}
+body.compact-gameplay .legend{font-size:11px;margin-top:3px}
+body.compact-gameplay .stats .stat{padding:5px 2px}
+body.compact-gameplay .stats strong{font-size:18px}
+body.compact-gameplay .stats span{font-size:10px}
+body.compact-gameplay .meter{margin:6px 0}
+body.compact-gameplay #dashboard-controls .compact-entry{gap:3px}
+body.compact-gameplay #dashboard-toggle{display:none}
+body.compact-gameplay .compact-undo{display:inline-flex!important}
+.compact-undo{display:none}
+body.compact-gameplay section.panel:has(#big-road) .roadmap-help{display:none}
+body.compact-gameplay section.panel:has(#road) .muted{display:none}
+body.compact-gameplay section.panel:has(#big-road) .next-road-preview{display:none}
+@media(max-width:440px){body.compact-gameplay #dashboard-controls{position:sticky;top:0}body.compact-gameplay #dashboard-controls strong{font-size:11px}}
 </style></head>
-<body><main><div id="dashboard-controls"><strong>🃏 Dashboard</strong><div class="compact-entry"><button class="banker" onclick="add('B')" aria-label="Record Banker">B</button><button class="player" onclick="add('P')" aria-label="Record Player">P</button><button class="tie" onclick="add('T')" aria-label="Record Tie">T</button></div><button id="dashboard-toggle" class="secondary" aria-pressed="false">Expand</button></div><h1>🃏 Baccarat Analyzer</h1><p class="muted">Live session tracker · Roadmap · Pattern history</p>
+<body><main><div id="dashboard-controls"><strong>🃏 Dashboard</strong><div class="compact-entry"><button class="banker" onclick="add('B')" aria-label="Record Banker">B</button><button class="player" onclick="add('P')" aria-label="Record Player">P</button><button class="tie" onclick="add('T')" aria-label="Record Tie">T</button></div><button class="secondary compact-undo" onclick="undo()" aria-label="Undo last hand">↶</button><button id="gameplay-compact-toggle" type="button" aria-pressed="false">Compact</button><button id="dashboard-toggle" class="secondary" aria-pressed="false">Expand</button></div><h1>🃏 Baccarat Analyzer</h1><p class="muted">Live session tracker · Roadmap · Pattern history</p>
 <div class="dashboard-nav"><div id="dashboard-nav-links" class="dashboard-nav-links" aria-label="Quick navigation"></div></div>
 <div class="actions"><button id="dashboard-road-focus" class="secondary" type="button">Road focus</button></div>
 <section class="panel dashboard-tools"><h2>Customize dashboard</h2><p class="muted">Show, hide, or move sections. Your layout is saved on this device.</p><details><summary style="cursor:pointer;padding:10px 0;font-weight:700">Manage section layout</summary><div id="dashboard-section-list" class="dashboard-setup"></div><button id="dashboard-reset" class="secondary" type="button">Reset layout</button></details></section>
@@ -129,4 +160,4 @@ document.getElementById('history').innerHTML=hands.slice(-60).reverse().map(v=>'
   else if(!enabled&&document.fullscreenElement&&document.exitFullscreen){try{await document.exitFullscreen()}catch(e){}}
  });
 })();
-</script><script src="dashboard.js?v=20261029-dashboard-v2"></script></body></html>
+</script><script src="dashboard.js?v=20261029-dashboard-v3"></script></body></html>
