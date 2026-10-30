@@ -29,6 +29,17 @@ file.addEventListener('change',async()=>{const f=file.files[0];if(!f)return;try{
  entries=new Map();selected=1;document.getElementById('pdf-import-tools').hidden=false;drawList();update();await choose(1);say('Loaded '+doc.numPages+' pages. Cover pages and screenshots cannot be reliably read automatically; review and enter each shoe before saving.');
  }catch(e){say('PDF error: '+e.message)}});
 sequence.addEventListener('input',()=>{capture();drawList()});
+document.querySelectorAll('#pdf-manual-buttons [data-hand]').forEach(button=>button.addEventListener('click',()=>{
+ const v=clean(sequence.value);sequence.value=v+button.dataset.hand;capture();drawList();
+}));
+document.getElementById('pdf-manual-undo').addEventListener('click',()=>{
+ sequence.value=clean(sequence.value).slice(0,-1);capture();drawList();
+});
+document.getElementById('pdf-manual-clear').addEventListener('click',()=>{
+ if(!sequence.value||confirm('Clear all entered results on PDF page '+selected+'?')){
+  sequence.value='';capture();drawList();
+ }
+});
 document.getElementById('pdf-mark-reviewed').addEventListener('click',()=>{capture();const e=entries.get(selected)||{};if(!e.sequence){report('Enter or detect a sequence first.');return}if(e.sequence.includes('?')){report('Resolve all ? positions before marking reviewed.');return}e.reviewed=true;entries.set(selected,e);report('Page '+selected+' marked reviewed. Check Banker, Player, Tie totals before importing.');drawList()});
 document.getElementById('pdf-select-all').addEventListener('click',()=>{if(!doc)return;capture();for(let i=1;i<=doc.numPages;i++){const e=entries.get(i)||{};e.checked=true;entries.set(i,e)}drawList()});
 document.getElementById('pdf-select-none').addEventListener('click',()=>{capture();for(const e of entries.values())e.checked=false;drawList()});
