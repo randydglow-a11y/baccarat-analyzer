@@ -81,4 +81,28 @@ for(const id of ['all-shoes-body','comparison-body']){
 }
 document.getElementById('dashboard-visual-refresh').addEventListener('click',drawBars);
 apply();drawBars();
+
+const compactButton=document.getElementById('gameplay-compact-toggle');
+const compactKey='baccarat-compact-gameplay-v1';
+function applyCompact(){
+ const active=document.body.classList.contains('compact-gameplay');
+ compactButton.textContent=active?'Full view':'Compact';
+ compactButton.setAttribute('aria-pressed',String(active));
+ document.documentElement.style.setProperty('--compact-rows',String(window.getRoadDisplayRows?.()||6));
+ if(active){
+  document.body.classList.remove('roads-focus');
+  focus.textContent='Road focus';
+  for(const section of sections)section.el.hidden=!section.el.querySelector('#road,#big-road,#total');
+ }else apply();
+}
+compactButton.addEventListener('click',()=>{
+ const active=!document.body.classList.contains('compact-gameplay');
+ document.body.classList.toggle('compact-gameplay',active);
+ try{localStorage.setItem(compactKey,active?'1':'0')}catch(e){}
+ applyCompact();
+ if(active)document.querySelector('section.panel:has(#road)')?.scrollIntoView({block:'start'});
+});
+try{if(localStorage.getItem(compactKey)==='1')document.body.classList.add('compact-gameplay')}catch(e){}
+document.getElementById('road-rows')?.addEventListener('change',()=>document.documentElement.style.setProperty('--compact-rows',String(window.getRoadDisplayRows?.()||6)));
+applyCompact();
 })();
