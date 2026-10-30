@@ -22,15 +22,16 @@ function pick(history,index){
  return options.length===1?options[0]:null;
 }
 function score(s){return s.outcome==='T'?0:s.bet===s.outcome?(s.bet==='B'?.95:1):-1}
-function calculate(shoes){
+async function calculate(shoes){
  const stats=labels.map(name=>({name,bets:0,wins:0,losses:0,pushes:0,net:0,streak:0,maxStreak:0}));
- for(const shoe of shoes){
-  const history=[];
+ for(let shoeIndex=0;shoeIndex<shoes.length;shoeIndex++){
+  const shoe=shoes[shoeIndex];const history=[];
   for(const outcome of shoe){
    const decisions=stats.map((_,i)=>pick(history,i));
    decisions.forEach((bet,i)=>{if(!bet)return;const s=stats[i],delta=score({bet,outcome});s.bets++;s.net+=delta;if(outcome==='T'){s.pushes++}else if(bet===outcome){s.wins++;s.streak=0}else{s.losses++;s.streak++;s.maxStreak=Math.max(s.maxStreak,s.streak)}});
    history.push(outcome);
   }
+  if(shoeIndex%5===4){$('bt-status').textContent='Testing shoe '+(shoeIndex+1)+' / '+shoes.length+'…';await new Promise(resolve=>setTimeout(resolve,0))}
  }
  return stats;
 }
@@ -40,7 +41,7 @@ $('bt-run').onclick=async()=>{
  $('bt-status').textContent='Testing '+shoes.length+' shoes. This may take a moment on iPhone…';
  await new Promise(resolve=>setTimeout(resolve,30));
  try{
-  const stats=calculate(shoes);$('bt-body').replaceChildren();exportRows=[];
+  const stats=await calculate(shoes);$('bt-body').replaceChildren();exportRows=[];
   stats.forEach(s=>{
    const rate=s.wins+s.losses?(100*s.wins/(s.wins+s.losses)).toFixed(1)+'%':'—';
    const values=[s.name,s.bets,rate,(s.net>=0?'+':'')+s.net.toFixed(2),s.maxStreak];
