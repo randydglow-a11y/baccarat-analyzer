@@ -274,7 +274,7 @@ document.getElementById('history').innerHTML=hands.slice(-60).reverse().map(v=>'
 })();
 </script><script src="dashboard.js?v=20261029-dashboard-v3"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script><script src="pdf-import.js?v=20261029-pdf-v7"></script><script src="screenshot-import.js?v=20261029-v2"></script><script src="game-database.js?v=20261029-v1"></script><script src="wizard-replay.js?v=20261030-v2"></script><script>
 (function(){
- const VERSION='2026-10-30.2';
+ const VERSION='2026-10-30.3';
  const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Check for updates';
  button.style.cssText='font-size:12px;padding:10px;margin:8px 0';
  const label=document.createElement('span');label.className='muted';label.style.cssText='font-size:12px;margin-left:9px';label.textContent='App '+VERSION;
@@ -290,6 +290,6 @@ document.getElementById('history').innerHTML=hands.slice(-60).reverse().map(v=>'
   }catch(e){alert('Could not check for updates. Try again when online.')}
   finally{button.disabled=false;button.textContent='Check for updates'}
  };
- const target=document.querySelector('main>.actions');if(target){target.append(button,label)}
+ const target=document.getElementById('dashboard-controls')||document.querySelector('main');if(target){const holder=document.createElement('div');holder.id='app-update-control';holder.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:5px 0';holder.append(button,label);target.appendChild(holder)}
 })();
 </script></body></html>
