@@ -3,10 +3,11 @@
 const file=document.getElementById('pdf-shoe-file'),status=document.getElementById('pdf-import-status'),list=document.getElementById('pdf-import-pages'),preview=document.getElementById('pdf-import-preview'),sequence=document.getElementById('pdf-import-sequence'),pageLabel=document.getElementById('pdf-import-page-label');
 let doc=null,selected=1,entries=new Map(),renderToken=0;
 const say=t=>status.textContent=t;
-const clean=s=>s.toUpperCase().replace(/[^BPT]/g,'');
-const valid=s=>/^[BPT]*$/.test(s);
-const update=()=>{const entry=entries.get(selected)||{};sequence.value=entry.sequence||'';pageLabel.textContent='PDF page '+selected;document.getElementById('pdf-import-count').textContent=clean(sequence.value).length+' results entered';};
-function capture(){const entry=entries.get(selected)||{};entry.sequence=clean(sequence.value);entries.set(selected,entry);document.getElementById('pdf-import-count').textContent=entry.sequence.length+' results entered'}
+const clean=s=>s.toUpperCase().replace(/[^BPT?]/g,'');
+const valid=s=>/^[BPT]+$/.test(s);
+const update=()=>{const entry=entries.get(selected)||{};sequence.value=entry.sequence||'';pageLabel.textContent='PDF page '+selected;showCounts();};
+function showCounts(){const v=clean(sequence.value),b=(v.match(/B/g)||[]).length,p=(v.match(/P/g)||[]).length,t=(v.match(/T/g)||[]).length,q=(v.match(/\?/g)||[]).length;document.getElementById('pdf-import-count').textContent=v.length+' positions · B '+b+' · P '+p+' · T '+t+(q?' · Uncertain '+q:'');}
+function capture(){const entry=entries.get(selected)||{};entry.sequence=clean(sequence.value);entries.set(selected,entry);showCounts();if(entry.auto)entry.reviewed=false}
 function drawList(){
  list.replaceChildren();if(!doc)return;
  for(let i=1;i<=doc.numPages;i++){
@@ -28,7 +29,7 @@ file.addEventListener('change',async()=>{const f=file.files[0];if(!f)return;try{
  entries=new Map();selected=1;document.getElementById('pdf-import-tools').hidden=false;drawList();update();await choose(1);say('Loaded '+doc.numPages+' pages. Cover pages and screenshots cannot be reliably read automatically; review and enter each shoe before saving.');
  }catch(e){say('PDF error: '+e.message)}});
 sequence.addEventListener('input',()=>{capture();drawList()});
-document.getElementById('pdf-mark-reviewed').addEventListener('click',()=>{capture();const e=entries.get(selected)||{};if(!e.sequence){report('Enter or detect a sequence first.');return}e.reviewed=true;entries.set(selected,e);report('Page '+selected+' marked reviewed. Check Banker, Player, Tie totals before importing.');drawList()});
+document.getElementById('pdf-mark-reviewed').addEventListener('click',()=>{capture();const e=entries.get(selected)||{};if(!e.sequence){report('Enter or detect a sequence first.');return}if(e.sequence.includes('?')){report('Resolve all ? positions before marking reviewed.');return}e.reviewed=true;entries.set(selected,e);report('Page '+selected+' marked reviewed. Check Banker, Player, Tie totals before importing.');drawList()});
 document.getElementById('pdf-select-all').addEventListener('click',()=>{if(!doc)return;capture();for(let i=1;i<=doc.numPages;i++){const e=entries.get(i)||{};e.checked=true;entries.set(i,e)}drawList()});
 document.getElementById('pdf-select-none').addEventListener('click',()=>{capture();for(const e of entries.values())e.checked=false;drawList()});
 document.getElementById('pdf-prev').addEventListener('click',()=>{if(doc&&selected>1)choose(selected-1)});
@@ -71,14 +72,14 @@ function classify(data,w,h,x,y,r){
   if(dx*dx+dy*dy>rad*rad)continue;
   const xx=Math.round(x+dx),yy=Math.round(y+dy);if(xx<0||yy<0||xx>=w||yy>=h)continue;
   const k=(yy*w+xx)*4,R=data[k],G=data[k+1],B=data[k+2],hi=Math.max(R,G,B),lo=Math.min(R,G,B);
-  if(hi<65||hi-lo<38)continue;
+  if(hi<55||hi-lo<28)continue;
   seen++;
-  if(G>R*1.13&&G>B*.85&&G>85)t++;
-  else if(B>R*1.2&&B>G*.95&&B>85)p++;
+  if(G>R*1.13&&G>B*.85&&G>75)t++;
+  else if(B>R*1.08&&B>G*.91&&B>65)p++;
   else if(R>G*1.3&&R>B*1.12&&R>90)b++;
  }
  const votes=[['B',b],['P',p],['T',t]].sort((a,b)=>b[1]-a[1]);
- return votes[0][1]>=Math.max(3,seen*.38)&&votes[0][1]>votes[1][1]*1.4?votes[0][0]:null;
+ return votes[0][1]>=Math.max(2,seen*.30)&&votes[0][1]>votes[1][1]*1.22?votes[0][0]:null;
 }
 function recognize(canvas){
  if(!calibration)throw Error('First drag a rectangle around the six-row Bead Road.');
@@ -86,13 +87,18 @@ function recognize(canvas){
  const pitch=h/6,cols=Math.round(w/pitch);
  if(cols<2||cols>40)throw Error('Selected rectangle proportions look wrong. Select only the six-row Bead Road.');
  const data=canvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,canvas.width,canvas.height).data;
- const hands=[];let uncertain=0,empty=0;
+ const positions=[];let uncertain=0,empty=0;
  for(let c=0;c<cols;c++)for(let row=0;row<6;row++){
   const value=classify(data,canvas.width,canvas.height,x+(c+.5)*w/cols,y+(row+.5)*pitch,pitch);
-  if(value)hands.push(value);
-  else {empty++;if(c<cols-1)uncertain++}
+  positions.push(value);
  }
- return {sequence:hands.join(''),uncertain,empty,cols};
+ // A partially filled last column is expected. Never discard holes within
+ // the observed sequence: they could be an entire missed Player streak.
+ let last=positions.length-1;while(last>=0&&!positions[last])last--;
+ if(last<0)return {sequence:'',uncertain:0,empty:positions.length,cols};
+ const kept=positions.slice(0,last+1);
+ uncertain=kept.filter(v=>!v).length;empty=positions.length-kept.length;
+ return {sequence:kept.map(v=>v||'?').join(''),uncertain,empty,cols};
 }
 async function renderForRecognition(n){
  const page=await doc.getPage(n),viewport=page.getViewport({scale:1});
@@ -111,7 +117,7 @@ document.getElementById('pdf-auto-read').addEventListener('click',async()=>{
  try{
   capture();const canvas=activeCanvas||await renderForRecognition(selected);
   const result=await readPage(selected,canvas);update();drawList();
-  report('Page '+selected+': '+result.sequence.length+' colored markers detected across '+result.cols+' columns. '+result.uncertain+' possible missing positions. VERIFY the full order and header totals; recognition may be wrong.');
+  report('Page '+selected+': '+result.sequence.replace(/\\?/g,'').length+' colored markers detected across '+result.cols+' columns. '+result.uncertain+' uncertain positions marked ?. Resolve them before saving. VERIFY the full order and header totals; recognition may be wrong.');
  }catch(e){report('Recognition: '+e.message)}
 });
 document.getElementById('pdf-auto-batch').addEventListener('click',async()=>{
