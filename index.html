@@ -272,4 +272,24 @@ document.getElementById('history').innerHTML=hands.slice(-60).reverse().map(v=>'
   else if(!enabled&&document.fullscreenElement&&document.exitFullscreen){try{await document.exitFullscreen()}catch(e){}}
  });
 })();
-</script><script src="dashboard.js?v=20261029-dashboard-v3"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script><script src="pdf-import.js?v=20261029-pdf-v7"></script><script src="screenshot-import.js?v=20261029-v2"></script><script src="game-database.js?v=20261029-v1"></script><script src="wizard-replay.js?v=20261030-v2"></script></body></html>
+</script><script src="dashboard.js?v=20261029-dashboard-v3"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script><script src="pdf-import.js?v=20261029-pdf-v7"></script><script src="screenshot-import.js?v=20261029-v2"></script><script src="game-database.js?v=20261029-v1"></script><script src="wizard-replay.js?v=20261030-v2"></script><script>
+(function(){
+ const VERSION='2026-10-30.2';
+ const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Check for updates';
+ button.style.cssText='font-size:12px;padding:10px;margin:8px 0';
+ const label=document.createElement('span');label.className='muted';label.style.cssText='font-size:12px;margin-left:9px';label.textContent='App '+VERSION;
+ button.onclick=async()=>{
+  button.disabled=true;button.textContent='Checking…';
+  try{
+   const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store'});
+   if(!response.ok)throw Error('Unable to check');
+   const latest=await response.json();
+   if(latest.version!==VERSION){
+    if(confirm('A newer version is available. Reload the app now? Your saved shoes will remain on this device.'))location.reload();
+   }else alert('You are using the latest version.');
+  }catch(e){alert('Could not check for updates. Try again when online.')}
+  finally{button.disabled=false;button.textContent='Check for updates'}
+ };
+ const target=document.querySelector('main>.actions');if(target){target.append(button,label)}
+})();
+</script></body></html>
