@@ -111,5 +111,6 @@ async function restoreAll(file){
 document.getElementById('backup-all').addEventListener('click',backupAll);
 document.getElementById('restore-file').addEventListener('change',e=>restoreAll(e.target.files[0]));
 
+window.importBaccaratShoes=function(items){if(!Array.isArray(items)||!items.length||items.length>300)return 0;const incoming=items.map((s,i)=>({id:id(),name:String(s.name||"PDF shoe "+(i+1)).slice(0,60),created:new Date().toISOString(),hands:valid(s.hands)}));if(incoming.some(s=>!s.hands.length||s.hands.length>1000))return 0;state.shoes.push(...incoming);state.active=incoming[0].id;save();return incoming.length};
 sync();save();
 })();
