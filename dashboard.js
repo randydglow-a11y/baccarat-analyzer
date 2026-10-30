@@ -2,7 +2,7 @@
 'use strict';
 const KEY='baccarat-dashboard-layout-v2';
 const main=document.querySelector('main');
-const panels=[...main.querySelectorAll('section.panel')];
+const panels=[...main.querySelectorAll('section.panel:not(.dashboard-tools)')];
 const sections=panels.map((el,i)=>({id:'section-'+i,title:el.querySelector('h2')?.textContent.trim()||'Section '+(i+1),el}));
 const byId=new Map(sections.map(s=>[s.id,s]));
 let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){}
@@ -17,6 +17,7 @@ function apply(){
  saved.order=ordered.map(s=>s.id);
  for(const s of sections)s.el.hidden=!!saved.hidden?.[s.id]&&!document.body.classList.contains('roads-focus');
  if(document.body.classList.contains('roads-focus'))for(const s of sections)s.el.hidden=!s.el.querySelector('#road,#big-road');
+ const toolsPanel=document.querySelector('.dashboard-tools');if(toolsPanel)toolsPanel.hidden=document.body.classList.contains('roads-focus');
  settings.replaceChildren();
  for(const s of ordered){
   const line=document.createElement('div');line.className='dashboard-section-line';
