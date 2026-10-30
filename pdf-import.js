@@ -27,7 +27,8 @@ file.addEventListener('change',async()=>{const f=file.files[0];if(!f)return;try{
  if(doc.numPages>300)throw Error('Limit: 300 PDF pages.');
  entries=new Map();selected=1;document.getElementById('pdf-import-tools').hidden=false;drawList();update();await choose(1);say('Loaded '+doc.numPages+' pages. Cover pages and screenshots cannot be reliably read automatically; review and enter each shoe before saving.');
  }catch(e){say('PDF error: '+e.message)}});
-sequence.addEventListener('input',()=>{capture();drawList()});\ndocument.getElementById('pdf-mark-reviewed').addEventListener('click',()=>{capture();const e=entries.get(selected)||{};if(!e.sequence){report('Enter or detect a sequence first.');return}e.reviewed=true;entries.set(selected,e);report('Page '+selected+' marked reviewed. Check Banker, Player, Tie totals before importing.');drawList()});
+sequence.addEventListener('input',()=>{capture();drawList()});
+document.getElementById('pdf-mark-reviewed').addEventListener('click',()=>{capture();const e=entries.get(selected)||{};if(!e.sequence){report('Enter or detect a sequence first.');return}e.reviewed=true;entries.set(selected,e);report('Page '+selected+' marked reviewed. Check Banker, Player, Tie totals before importing.');drawList()});
 document.getElementById('pdf-select-all').addEventListener('click',()=>{if(!doc)return;capture();for(let i=1;i<=doc.numPages;i++){const e=entries.get(i)||{};e.checked=true;entries.set(i,e)}drawList()});
 document.getElementById('pdf-select-none').addEventListener('click',()=>{capture();for(const e of entries.values())e.checked=false;drawList()});
 document.getElementById('pdf-prev').addEventListener('click',()=>{if(doc&&selected>1)choose(selected-1)});
@@ -37,7 +38,8 @@ document.getElementById('pdf-save').addEventListener('click',()=>{
  if(!chosen.length){say('Select one or more pages first.');return}
  const missing=chosen.filter(([p,e])=>!e.sequence);if(missing.length){say('Enter and review B/P/T sequences before importing. Missing: '+missing.slice(0,12).map(x=>x[0]).join(', ')+(missing.length>12?'…':''));return}
  const invalids=chosen.filter(([p,e])=>!valid(e.sequence)||e.sequence.length>1000);if(invalids.length){say('Invalid sequence or over 1,000 hands on pages: '+invalids.map(x=>x[0]).join(', '));return}
- const unreviewed=chosen.filter(([p,e])=>e.auto&&!e.reviewed);if(unreviewed.length){say('Review automatically detected pages before importing: '+unreviewed.slice(0,12).map(x=>x[0]).join(', ')+'. Open each page, check the sequence against the image, then tap Mark reviewed.');return}\n const payload=chosen.map(([p,e])=>({name:'PDF page '+p,hands:e.sequence.split('')}));
+ const unreviewed=chosen.filter(([p,e])=>e.auto&&!e.reviewed);if(unreviewed.length){say('Review automatically detected pages before importing: '+unreviewed.slice(0,12).map(x=>x[0]).join(', ')+'. Open each page, check the sequence against the image, then tap Mark reviewed.');return}
+ const payload=chosen.map(([p,e])=>({name:'PDF page '+p,hands:e.sequence.split('')}));
  if(!confirm('Import '+payload.length+' reviewed PDF shoe(s) with '+payload.reduce((n,s)=>n+s.hands.length,0)+' hands? Existing shoes will be preserved.'))return;
  if(typeof window.importBaccaratShoes!=='function'){say('Shoe importer is not ready. Refresh and try again.');return}
  const count=window.importBaccaratShoes(payload);
@@ -125,4 +127,5 @@ document.getElementById('pdf-auto-batch').addEventListener('click',async()=>{
  }
  update();drawList();report('Batch scan finished: '+done+' pages with detected circles; '+failed+' empty/failed. Every page must be reviewed before importing.');
 });
-\n})();
+
+})();
