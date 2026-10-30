@@ -1,16 +1,16 @@
 (function(){
 'use strict';
 const input=document.getElementById('shot-files'),status=document.getElementById('shot-status'),viewer=document.getElementById('shot-viewer'),editor=document.getElementById('shot-sequence'),counter=document.getElementById('shot-count'),select=document.getElementById('shot-select');
-let items=[],current=0;
+let items=[],current=0,crop=null,corner=null;
 const clean=s=>s.toUpperCase().replace(/[^BPT?]/g,'');
 function counts(s){return ['B','P','T','?'].map(c=>c+': '+[...s].filter(v=>v===c).length).join(' · ')}
-function saveEdit(){if(!items.length)return;items[current].sequence=clean(editor.value);items[current].reviewed=false}
+function saveEdit(){if(!items.length)return;const next=clean(editor.value);if(items[current].sequence!==next){items[current].sequence=next;items[current].reviewed=false}}
 function draw(){
  if(!items.length)return;
  const it=items[current];select.replaceChildren();
  items.forEach((x,i)=>{const o=document.createElement('option');o.value=i;o.textContent=(i+1)+'. '+x.name+(x.reviewed?' ✓':'');select.append(o)});
  select.value=String(current);editor.value=it.sequence;counter.textContent=it.sequence.length+' positions · '+counts(it.sequence);
- viewer.replaceChildren();const img=document.createElement('img');img.src=it.url;img.alt='Screenshot '+it.name;img.style.cssText='width:100%;height:auto;display:block';viewer.append(img);
+ viewer.replaceChildren();const img=document.createElement('img');img.src=it.url;img.alt='Screenshot '+it.name;img.style.cssText='width:100%;height:auto;display:block';viewer.append(img);img.addEventListener('click',e=>{const r=img.getBoundingClientRect(),p={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};if(!corner){corner=p;document.getElementById('shot-scan-status').textContent='Tap the opposite corner.'}else{crop={x:Math.min(corner.x,p.x),y:Math.min(corner.y,p.y),w:Math.abs(corner.x-p.x),h:Math.abs(corner.y-p.y)};corner=null;document.getElementById('shot-scan-status').textContent='Selected. Tap Scan this screenshot.'}});
  status.textContent='Screenshot '+(current+1)+' of '+items.length+'. Enter results top-to-bottom, then left-to-right in the Bead Plate. Check totals before marking reviewed.';
 }
 input.addEventListener('change',()=>{
