@@ -20,7 +20,7 @@ $('st-b').onclick=()=>{pending='B';stats()};
 $('st-p').onclick=()=>{pending='P';stats()};
 $('st-skip').onclick=()=>{pending=null;stats()};
 $('st-reset').onclick=()=>{if(!confirm('Clear this strategy test? Saved shoes will not change.'))return;records=[];pending=null;stats()};
-$('st-export').onclick=()=>{if(!records.length){alert('No test results to export yet.');return}const lines=['Shoe,Hand,Bet,Outcome,Units',...records.map(r=>[r.shoe,r.hand,r.bet||'SKIP',r.outcome,r.bet?(r.outcome==='T'?0:r.outcome===r.bet?(r.bet==='B'?.95:1):-1):0].join(','))];const blob=new Blob([lines.join('\\n')],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='baccarat-strategy-test.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+$('st-export').onclick=()=>{if(!records.length){alert('No test results to export yet.');return}const lines=['Shoe,Hand,Bet,Outcome,Units',...records.map(r=>[r.shoe,r.hand,r.bet||'SKIP',r.outcome,r.bet?(r.outcome==='T'?0:r.outcome===r.bet?(r.bet==='B'?.95:1):-1):0].join(','))];const blob=new Blob([lines.join('\n')],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='baccarat-strategy-test.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 window.addEventListener('baccarat-replay-change',e=>{
  const d=e.detail;if(!d||!d.active){active=false;pending=null;hand=0;stats();return}
  if(shoe!==d.shoe){shoe=d.shoe;hand=0;pending=null}
