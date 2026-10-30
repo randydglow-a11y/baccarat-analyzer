@@ -192,6 +192,17 @@ html{overflow-x:hidden}body{overflow-x:hidden}main{width:100%;min-width:0}main>.
  body.compact-gameplay #dashboard-controls{top:env(safe-area-inset-top,0px)!important}
  #dashboard-controls .compact-entry button,#dashboard-controls .compact-undo{touch-action:manipulation}
 }
+</style><style id="sticky-game-controls-v2">
+/* overflow-x:hidden on body/html created a scrolling ancestor that trapped sticky. */
+html,body{overflow-x:clip!important;overflow-y:visible!important}
+@media(max-width:600px){
+ #dashboard-controls,body.compact-gameplay #dashboard-controls{
+  position:sticky!important;top:0!important;z-index:999!important;
+  margin-top:0!important;
+  background:#101e31!important;
+  border:1px solid #4b6380!important;
+ }
+}
 </style></head>
 <body><main><div id="dashboard-controls"><strong>🃏 Dashboard</strong><div class="compact-entry"><button class="banker" onclick="add('B')" aria-label="Record Banker">B</button><button class="player" onclick="add('P')" aria-label="Record Player">P</button><button class="tie" onclick="add('T')" aria-label="Record Tie">T</button></div><button class="secondary compact-undo" onclick="undo()" aria-label="Undo last hand">↶</button><button id="gameplay-compact-toggle" type="button" aria-pressed="false">Compact</button><button id="dashboard-toggle" class="secondary" aria-pressed="false">Expand</button></div><h1>🃏 Baccarat Analyzer</h1><p class="muted">Live session tracker · Roadmap · Pattern history</p>
 <div class="dashboard-nav"><div id="dashboard-nav-links" class="dashboard-nav-links" aria-label="Quick navigation"></div></div>
