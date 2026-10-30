@@ -139,6 +139,45 @@ html{overflow-x:hidden}body{overflow-x:hidden}main{width:100%;min-width:0}main>.
  #dashboard-controls .compact-undo{grid-column:2!important;grid-row:2!important}
  #dashboard-toggle{grid-column:1!important;grid-row:3!important}
 }
+</style><style id="iphone-layout-v2">
+@media(max-width:600px){
+ #dashboard-controls,body.compact-gameplay #dashboard-controls{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto!important;
+  align-items:center!important;
+  gap:7px!important;
+  padding:8px!important;
+ }
+ #dashboard-controls strong,body.compact-gameplay #dashboard-controls strong{
+  grid-column:1!important;grid-row:1!important;
+  font-size:14px!important;overflow:visible!important;
+ }
+ #gameplay-compact-toggle,body.compact-gameplay #gameplay-compact-toggle{
+  grid-column:2!important;grid-row:1!important;
+  justify-self:end!important;min-width:0!important;
+  padding:10px 12px!important;
+ }
+ #dashboard-controls .compact-entry,body.compact-gameplay #dashboard-controls .compact-entry{
+  grid-column:1!important;grid-row:2!important;
+  justify-self:start!important;display:flex!important;gap:6px!important;
+ }
+ #dashboard-controls .compact-entry button,body.compact-gameplay #dashboard-controls .compact-entry button{
+  min-width:46px!important;height:44px!important;padding:8px 12px!important;font-size:15px!important;
+ }
+ #dashboard-controls .compact-undo,body.compact-gameplay #dashboard-controls .compact-undo{
+  grid-column:2!important;grid-row:2!important;justify-self:end!important;
+  width:48px!important;height:44px!important;min-width:48px!important;
+  padding:8px!important;
+ }
+ #dashboard-toggle{display:none!important}
+ body.compact-gameplay footer{display:none!important}
+ footer{font-size:11px;line-height:1.45;opacity:.7}
+ body.compact-gameplay #dashboard-controls{margin-bottom:6px!important}
+}
+@media(max-width:370px){
+ #dashboard-controls .compact-entry button,body.compact-gameplay #dashboard-controls .compact-entry button{min-width:39px!important;padding:8px!important}
+}
 </style></head>
 <body><main><div id="dashboard-controls"><strong>🃏 Dashboard</strong><div class="compact-entry"><button class="banker" onclick="add('B')" aria-label="Record Banker">B</button><button class="player" onclick="add('P')" aria-label="Record Player">P</button><button class="tie" onclick="add('T')" aria-label="Record Tie">T</button></div><button class="secondary compact-undo" onclick="undo()" aria-label="Undo last hand">↶</button><button id="gameplay-compact-toggle" type="button" aria-pressed="false">Compact</button><button id="dashboard-toggle" class="secondary" aria-pressed="false">Expand</button></div><h1>🃏 Baccarat Analyzer</h1><p class="muted">Live session tracker · Roadmap · Pattern history</p>
 <div class="dashboard-nav"><div id="dashboard-nav-links" class="dashboard-nav-links" aria-label="Quick navigation"></div></div>
