@@ -216,6 +216,46 @@ $('cc-three-run').onclick=async()=>{
 const stopCompare=document.createElement('section');stopCompare.className='panel';stopCompare.id='cc-stop-comparison';
 stopCompare.innerHTML='<h2>🛑 Compare stopping rules</h2><p class="muted">Test 1, 2, 3 winning columns or the whole shoe on the SAME loaded shoes, using your current road, Match/Mismatch, progression, cap and recovery settings. Shows total units wagered, net return per 100 units wagered, net units, profitable shoes, worst shoe, and maximum cumulative drawdown. A different stop rule changes risk, not the casino house edge.</p><button type="button" class="player" id="cc-stop-run">Compare four stopping rules</button><p id="cc-stop-status" class="muted">Load shoes to compare.</p><div id="cc-stop-results" style="overflow-x:auto"></div>';
 comparison.insertAdjacentElement('afterend',stopCompare);
+
+const verifyOne=document.createElement('section');verifyOne.className='panel';verifyOne.id='cc-verify-one';
+verifyOne.innerHTML='<h2>🧪 Verify 1-Column Strategy</h2><p class="muted">Generate 10,000 completely new shuffled shoes and test one winning column with your current road, Match/Mismatch, progression, cap and recovery settings. Fresh shoes replace the currently loaded simulation set, so export any shoes you want to keep first. This tests repeatability, not a guaranteed casino advantage.</p><button type="button" class="player" id="cc-verify-one-run">Verify 1-Column Strategy</button><p class="muted" id="cc-verify-one-status">Ready for a fresh independent test.</p><div id="cc-verify-one-results"></div>';
+stopCompare.insertAdjacentElement('afterend',verifyOne);
+$('cc-verify-one-run').onclick=async()=>{
+ const button=$('cc-verify-one-run'),status=$('cc-verify-one-status'),output=$('cc-verify-one-results');
+ const generator=$('shoe-gen-run'),selector=$('shoe-gen-count');
+ if(!generator||!selector){status.textContent='Shoe generator is unavailable. Reload the latest app.';return}
+ if(generator.disabled){status.textContent='Wait for the current shoe generation to finish.';return}
+ button.disabled=true;output.replaceChildren();
+ const config={...settings(),wins:1};
+ try{
+  status.textContent='Generating 10,000 fresh shoes…';
+  selector.value='10000';
+  const fresh=new Promise((resolve,reject)=>{
+   const listener=e=>{clearTimeout(timeout);resolve(e.detail.rows)};
+   const timeout=setTimeout(()=>{window.removeEventListener('baccarat-simulation-file',listener);reject(new Error('Fresh shoe generation timed out.'))},120000);
+   window.addEventListener('baccarat-simulation-file',listener,{once:true});
+  });
+  generator.click();
+  const rows=await fresh,shoes=Array.from(rows.values()).slice(0,10000);
+  if(shoes.length!==10000)throw new Error('Expected 10,000 newly generated shoes.');
+  status.textContent='Testing one winning column on 10,000 new shoes…';
+  const result=await run(shoes,null,false,config);
+  const wagered=result.shoeAudits.reduce((sum,shoe)=>sum+shoe.bets.reduce((v,bet)=>v+(bet.outcome==='T'?0:bet.stake),0),0);
+  const batches=[];
+  for(let i=0;i<5;i++)batches.push(result.shoeAudits.slice(i*2000,(i+1)*2000).reduce((sum,shoe)=>sum+shoe.net,0));
+  let balance=0,peak=0,drawdown=0;
+  for(const shoe of result.shoeAudits){balance+=shoe.net;peak=Math.max(peak,balance);drawdown=Math.max(drawdown,peak-balance)}
+  const fmt=n=>n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const metrics=[['Net units',fmt(result.net)],['Net per 100 wagered',wagered?fmt(100*result.net/wagered):'—'],['Units per shoe',fmt(result.net/shoes.length)],['Profitable shoes',(100*result.profitableShoes/shoes.length).toFixed(1)+'%'],['Maximum drawdown',fmt(drawdown)],['Positive batches',batches.filter(n=>n>0).length+' / 5'],['Batch net units',batches.map(fmt).join(' | ')]];
+  const card=document.createElement('div');card.style.cssText='border:1px solid #405573;border-radius:14px;padding:14px;overflow-wrap:anywhere';
+  for(const [name,value] of metrics){const line=document.createElement('div');line.style.cssText='display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:8px 0;border-bottom:1px solid #34465f';const label=document.createElement('span');label.textContent=name;const val=document.createElement('strong');val.textContent=value;line.append(label,val);card.append(line)}
+  output.append(card);
+  const note=document.createElement('p');note.className='muted';note.textContent='Fresh shoes, fixed one-column stop, same selected betting rules. '+(result.net>0?'This batch finished positive, but a single positive test does not prove an advantage.':'This batch did not finish positive. The earlier positive result did not repeat in this test.')+' Banker commission is included. Do not interpret profitable-shoe percentage as the chance of long-term profit.';output.append(note);
+  status.textContent='Fresh 10,000-shoe verification complete.';
+ }catch(e){status.textContent='Verification error: '+e.message}
+ finally{button.disabled=false}
+};
+
 $('cc-stop-run').onclick=async()=>{
  const button=$('cc-stop-run'),status=$('cc-stop-status'),output=$('cc-stop-results');
  if(!dataset||dataset.size===0){status.textContent='Generate or upload shoes first.';return}
