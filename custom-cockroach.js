@@ -122,6 +122,72 @@ $('cc-validate-run').onclick=async()=>{
  finally{button.disabled=false}
 };
 
+
+const deepAudit=document.createElement('section');deepAudit.className='panel';deepAudit.id='cc-deep-audit';
+deepAudit.innerHTML='<h2>🔬 Independent Strategy Audit</h2><p class="muted">Check each recorded wager against pre-hand signals, independently recalculate payouts, progression stakes, ties, and shoe loss limits. Shows specific discrepancies. Road construction still shares the app road engine; this is an accounting/timing cross-check, not a fully independent road implementation or proof of an edge.</p><button type="button" class="player" id="cc-deep-run">Run Independent Strategy Audit</button><p class="muted" id="cc-deep-status">Generate or load shoes first.</p><div id="cc-deep-results"></div>';
+validation.insertAdjacentElement('afterend',deepAudit);
+$('cc-deep-run').onclick=async()=>{
+ const button=$('cc-deep-run'),status=$('cc-deep-status'),output=$('cc-deep-results');
+ if(!dataset||!dataset.size){status.textContent='Generate or load shoes first.';return}
+ button.disabled=true;output.replaceChildren();
+ try{
+  const shoes=Array.from(dataset.values()).slice(0,Math.min(dataset.size,10000)),config=settings();
+  status.textContent='Replaying '+shoes.length+' shoes and checking each wager…';
+  const sim=await run(shoes,null,false,config);
+  const problems=[],counts={wagers:0,ties:0,signals:0,progression:0,payouts:0,caps:0,transition:0};
+  const fail=(type,shoe,bet,message)=>{counts[type]++;if(problems.length<20)problems.push('Shoe '+shoe+(bet?' hand '+bet.hand:'')+': '+message)};
+  const eq=(a,b)=>Math.abs(a-b)<0.00001;
+  let totalNet=0,expectedRecovery=false;
+  for(let i=0;i<shoes.length;i++){
+   const audit=sim.shoeAudits[i],history=[],bets=audit.bets,cap=progression({...config,start:audit.recoveryShoe?config.start*config.recoveryMult:config.start}).total;
+   if(config.recovery&&config.capMethod==='steps'&&audit.recoveryShoe!==expectedRecovery)fail('transition',i+1,null,'next-shoe recovery transition disagrees with prior shoe');
+   expectedRecovery=audit.queuedRecovery;
+   let cursor=0,net=0,grossLoss=0,lastTie=null,lastColumn=null,losses=0,previousStake=0;
+   for(let h=0;h<audit.handCount;h++){
+    const actual=shoes[i][h],bet=bets[cursor];
+    if(bet&&bet.hand===h+1){
+     cursor++;counts.wagers++;
+     if(lastTie){
+      if(bet.bet!==lastTie.bet||bet.column!==lastTie.column||!eq(bet.stake,lastTie.stake))fail('signals',i+1,bet,'tie did not repeat the same side, column and stake');
+     }else{
+      const prediction=nextSignal(history,config);
+      if(!prediction||prediction.bet!==bet.bet||prediction.col+1!==bet.column)fail('signals',i+1,bet,'bet not supported by pre-hand signal');
+     }
+     if(lastColumn!==bet.column){losses=0;previousStake=0;lastColumn=bet.column}
+     const baseStake=audit.recoveryShoe?config.start*config.recoveryMult:config.start;
+     const seq=progression({...config,start:baseStake}).seq;
+     if(config.capMethod==='steps'&&(!eq(bet.stake,seq[Math.min(losses,seq.length-1)])||losses>=config.steps))fail('progression',i+1,bet,'incorrect progression stake or step limit');
+     if(config.capMethod==='stake'&&bet.stake>config.cap+0.00001)fail('caps',i+1,bet,'manual stake cap exceeded');
+     const delta=actual==='T'?0:actual===bet.bet?bet.stake*(bet.bet==='B'?0.95:1):-bet.stake;
+     net+=delta;
+     if(delta<0)grossLoss+=bet.stake;
+     if(!eq(delta,bet.delta)||!eq(net,bet.net)||bet.outcome!==actual)fail('payouts',i+1,bet,'payout, outcome or running balance mismatch');
+     if(config.capMethod==='steps'&&grossLoss>cap+0.00001)fail('caps',i+1,bet,'whole-shoe gross loss cap exceeded');
+     if(actual==='T'){counts.ties++;lastTie=bet}
+     else{
+      lastTie=null;
+      if(delta<0){previousStake=bet.stake;losses++}
+      else{losses=0;previousStake=0}
+     }
+    }else if(lastTie){fail('signals',i+1,null,'missing wager after tie at hand '+(h+1));lastTie=null}
+    history.push(actual);
+   }
+   if(cursor!==bets.length||!eq(net,audit.net))fail('payouts',i+1,null,'shoe wager count or net mismatch');
+   totalNet+=net;
+   if(i%100===99){status.textContent='Audited '+(i+1).toLocaleString()+' / '+shoes.length.toLocaleString()+' shoes…';await new Promise(resolve=>setTimeout(resolve,0))}
+  }
+  if(!eq(totalNet,sim.net))fail('payouts',0,null,'aggregate net does not match simulation');
+  const summary=document.createElement('p');summary.textContent=shoes.length.toLocaleString()+' shoes · '+counts.wagers.toLocaleString()+' wagers · '+counts.ties.toLocaleString()+' tie pushes · independently calculated net '+totalNet.toFixed(2)+' units';output.append(summary);
+  const types=[['Pre-hand signals / tie timing',counts.signals],['Progression stakes',counts.progression],['Payouts / accounting',counts.payouts],['Shoe-wide caps',counts.caps],['Next-shoe recovery',counts.transition]];
+  for(const [name,n] of types){const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #405573';const a=document.createElement('span');a.textContent=name;const b=document.createElement('strong');b.textContent=n?'ISSUES: '+n:'PASS';b.style.color=n?'#ff9c9c':'#66d5a7';row.append(a,b);output.append(row)}
+  if(problems.length){const title=document.createElement('h3');title.textContent='First discrepancies';output.append(title);const list=document.createElement('ol');for(const message of problems){const li=document.createElement('li');li.textContent=message;list.append(li)}output.append(list)}
+  const caveat=document.createElement('p');caveat.className='muted';caveat.textContent='This audit independently recalculates recorded outcomes and progression steps, but uses the same road engine to reconstruct pre-hand signals and the same run() to produce the wager log. A PASS cannot rule out a shared road-generation bug, incorrect assumptions about baccarat, or biased generated shoes. The audit does not test positive expected value.';output.append(caveat);
+  const errors=Object.entries(counts).filter(([key])=>!['wagers','ties'].includes(key)).reduce((sum,[,value])=>sum+value,0);
+  status.textContent=errors?'Audit found '+errors+' discrepancy checks. Review details below.':'Audit passed recorded wager checks; shared-engine limitations remain.';
+ }catch(e){status.textContent='Audit error: '+e.message}
+ finally{button.disabled=false}
+};
+
 // Additional independent accounting and recovery-boundary regression checks.
 const recoveryCheck=document.createElement('section');recoveryCheck.className='panel';recoveryCheck.id='cc-recovery-check';
 recoveryCheck.innerHTML='<h2>🔍 Recovery & progression checks</h2><p class="muted">Checks wager arithmetic, ties, progression limits, and shoe-to-shoe recovery on loaded shoes. Uses the same road signal engine, so this is not proof of predictive accuracy.</p><button type="button" class="secondary" id="cc-recovery-run">Check recovery rules</button><p class="muted" id="cc-recovery-status">Load shoes to begin.</p>';
