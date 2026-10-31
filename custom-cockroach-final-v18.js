@@ -158,45 +158,6 @@ function independentSignal(history,c){
  }
  return possible.length===1?{bet:possible[0],column:col+1}:null;
 }
-$('cc-final-run').onclick=async()=>{
- const button=$('cc-final-run'),status=$('cc-final-status'),output=$('cc-final-results');
- if(!dataset||!dataset.size){status.textContent='Generate or load shoes first.';return}
- button.disabled=true;output.replaceChildren();
- try{
-  const shoes=Array.from(dataset.values()).slice(0,Math.min(10000,dataset.size)),c=settings();
-  status.textContent='Running progression on '+shoes.length+' shoes…';
-  const main=await run(shoes,null,false,c);
-  status.textContent='Running flat-bet control on the same shoes…';
-  const flat=await run(shoes,null,false,{...c,mode:'flat',start:1,recovery:false});
-  let checked=0,discrepancies=0,first=[],tieCarry=0;
-  for(let i=0;i<shoes.length;i++){
-   const audit=main.shoeAudits[i],history=[],bets=audit.bets;let cursor=0,lastTie=null;
-   for(let h=0;h<audit.handCount;h++){
-    const b=bets[cursor];
-    if(b&&b.hand===h+1){
-     cursor++;checked++;
-     if(lastTie){
-      tieCarry++;
-      if(b.bet!==lastTie.bet||b.column!==lastTie.column||Math.abs(b.stake-lastTie.stake)>0.00001){discrepancies++;if(first.length<12)first.push('Shoe '+(i+1)+' hand '+(h+1)+': tie carry differs')}
-     }else{
-      const expected=independentSignal(history,c);
-      if(!expected||expected.bet!==b.bet||expected.column!==b.column){discrepancies++;if(first.length<12)first.push('Shoe '+(i+1)+' hand '+(h+1)+': independent road signal differs (expected '+(expected?expected.bet+' column '+expected.column:'none')+', recorded '+b.bet+' column '+b.column+')')}
-     }
-     lastTie=b.outcome==='T'?b:null;
-    }else if(lastTie){discrepancies++;if(first.length<12)first.push('Shoe '+(i+1)+' hand '+(h+1)+': missing tie continuation');lastTie=null}
-    history.push(shoes[i][h]);
-   }
-   if(i%100===99){status.textContent='Cross-checking shoe '+(i+1)+' / '+shoes.length+'…';await new Promise(resolve=>setTimeout(resolve,0))}
-  }
-  const metrics=[['Shoes checked',shoes.length.toLocaleString()],['Recorded wagers checked',checked.toLocaleString()],['Tie continuations',tieCarry.toLocaleString()],['Independent signal discrepancies',discrepancies.toLocaleString()],['Current strategy net',main.net.toFixed(2)+' units'],['Flat 1-unit control net',flat.net.toFixed(2)+' units'],['Current profitable shoes',(100*main.profitableShoes/shoes.length).toFixed(1)+'%'],['Flat profitable shoes',(100*flat.profitableShoes/shoes.length).toFixed(1)+'%']];
-  for(const [label,value] of metrics){const line=document.createElement('div');line.style.cssText='display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:9px 0;border-bottom:1px solid #405573';const a=document.createElement('span');a.textContent=label;const b=document.createElement('strong');b.textContent=value;line.append(a,b);output.append(line)}
-  if(first.length){const heading=document.createElement('h3');heading.textContent='First signal differences';output.append(heading);const list=document.createElement('ol');for(const issue of first){const li=document.createElement('li');li.textContent=issue;list.append(li)}output.append(list)}
-  const note=document.createElement('p');note.className='muted';note.textContent='Independent marks are reconstructed from Banker/Player streaks without calling BaccaratRoads. This checks the chronological color sequence and signal timing, but shares the same stated derived-road rules and does not independently certify casino road conventions. Flat control keeps the same stopping rule and cap method, so it is not a matched-turnover or equal-risk comparison. Positive simulated results do not demonstrate a sustainable edge.';output.append(note);
-  status.textContent=discrepancies?'Found '+discrepancies+' independent road-signal discrepancies.':'Independent road signals matched all '+checked.toLocaleString()+' recorded wagers.';
- }catch(e){status.textContent='Final check error: '+e.message}
- finally{button.disabled=false}
-};
-
 const deepAudit=document.createElement('section');deepAudit.className='panel';deepAudit.id='cc-deep-audit';
 deepAudit.innerHTML='<h2>🔬 Independent Strategy Audit</h2><p class="muted">Check each recorded wager against pre-hand signals, independently recalculate payouts, progression stakes, ties, and shoe loss limits. Shows specific discrepancies. Road construction still shares the app road engine; this is an accounting/timing cross-check, not a fully independent road implementation or proof of an edge.</p><button type="button" class="player" id="cc-deep-run">Run Independent Strategy Audit</button><p class="muted" id="cc-deep-status">Generate or load shoes first.</p><div id="cc-deep-results"></div><div id="cc-final-check" style="border-top:1px solid #405573;margin-top:20px;padding-top:20px"><h2>🏁 Final Road & Flat-Bet Check</h2><p class="muted">Independently reconstruct the road from raw outcomes and verify every recorded betting signal, then compare your current progression against flat 1-unit bets on the same shoes. Uses your selected road, rows, Match/Mismatch, stop rule and recovery settings. Flat comparison disables recovery. This is a separate road-calculation cross-check, not a claim of positive expected value.</p><button type="button" class="player" id="cc-final-run">Run Final Check</button><p id="cc-final-status" class="muted">Generate or load shoes first.</p><div id="cc-final-results"></div></div>';
 validation.insertAdjacentElement('afterend',deepAudit);
@@ -261,6 +222,46 @@ $('cc-deep-run').onclick=async()=>{
  }catch(e){status.textContent='Audit error: '+e.message}
  finally{button.disabled=false}
 };
+
+$('cc-final-run').onclick=async()=>{
+ const button=$('cc-final-run'),status=$('cc-final-status'),output=$('cc-final-results');
+ if(!dataset||!dataset.size){status.textContent='Generate or load shoes first.';return}
+ button.disabled=true;output.replaceChildren();
+ try{
+  const shoes=Array.from(dataset.values()).slice(0,Math.min(10000,dataset.size)),c=settings();
+  status.textContent='Running progression on '+shoes.length+' shoes…';
+  const main=await run(shoes,null,false,c);
+  status.textContent='Running flat-bet control on the same shoes…';
+  const flat=await run(shoes,null,false,{...c,mode:'flat',start:1,recovery:false});
+  let checked=0,discrepancies=0,first=[],tieCarry=0;
+  for(let i=0;i<shoes.length;i++){
+   const audit=main.shoeAudits[i],history=[],bets=audit.bets;let cursor=0,lastTie=null;
+   for(let h=0;h<audit.handCount;h++){
+    const b=bets[cursor];
+    if(b&&b.hand===h+1){
+     cursor++;checked++;
+     if(lastTie){
+      tieCarry++;
+      if(b.bet!==lastTie.bet||b.column!==lastTie.column||Math.abs(b.stake-lastTie.stake)>0.00001){discrepancies++;if(first.length<12)first.push('Shoe '+(i+1)+' hand '+(h+1)+': tie carry differs')}
+     }else{
+      const expected=independentSignal(history,c);
+      if(!expected||expected.bet!==b.bet||expected.column!==b.column){discrepancies++;if(first.length<12)first.push('Shoe '+(i+1)+' hand '+(h+1)+': independent road signal differs (expected '+(expected?expected.bet+' column '+expected.column:'none')+', recorded '+b.bet+' column '+b.column+')')}
+     }
+     lastTie=b.outcome==='T'?b:null;
+    }else if(lastTie){discrepancies++;if(first.length<12)first.push('Shoe '+(i+1)+' hand '+(h+1)+': missing tie continuation');lastTie=null}
+    history.push(shoes[i][h]);
+   }
+   if(i%100===99){status.textContent='Cross-checking shoe '+(i+1)+' / '+shoes.length+'…';await new Promise(resolve=>setTimeout(resolve,0))}
+  }
+  const metrics=[['Shoes checked',shoes.length.toLocaleString()],['Recorded wagers checked',checked.toLocaleString()],['Tie continuations',tieCarry.toLocaleString()],['Independent signal discrepancies',discrepancies.toLocaleString()],['Current strategy net',main.net.toFixed(2)+' units'],['Flat 1-unit control net',flat.net.toFixed(2)+' units'],['Current profitable shoes',(100*main.profitableShoes/shoes.length).toFixed(1)+'%'],['Flat profitable shoes',(100*flat.profitableShoes/shoes.length).toFixed(1)+'%']];
+  for(const [label,value] of metrics){const line=document.createElement('div');line.style.cssText='display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:9px 0;border-bottom:1px solid #405573';const a=document.createElement('span');a.textContent=label;const b=document.createElement('strong');b.textContent=value;line.append(a,b);output.append(line)}
+  if(first.length){const heading=document.createElement('h3');heading.textContent='First signal differences';output.append(heading);const list=document.createElement('ol');for(const issue of first){const li=document.createElement('li');li.textContent=issue;list.append(li)}output.append(list)}
+  const note=document.createElement('p');note.className='muted';note.textContent='Independent marks are reconstructed from Banker/Player streaks without calling BaccaratRoads. This checks the chronological color sequence and signal timing, but shares the same stated derived-road rules and does not independently certify casino road conventions. Flat control keeps the same stopping rule and cap method, so it is not a matched-turnover or equal-risk comparison. Positive simulated results do not demonstrate a sustainable edge.';output.append(note);
+  status.textContent=discrepancies?'Found '+discrepancies+' independent road-signal discrepancies.':'Independent road signals matched all '+checked.toLocaleString()+' recorded wagers.';
+ }catch(e){status.textContent='Final check error: '+e.message}
+ finally{button.disabled=false}
+};
+
 
 // Additional independent accounting and recovery-boundary regression checks.
 const recoveryCheck=document.createElement('section');recoveryCheck.className='panel';recoveryCheck.id='cc-recovery-check';
