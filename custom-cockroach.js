@@ -144,7 +144,7 @@ $('cc-recovery-run').onclick=async()=>{
     if(stoppedColumn!==null&&bet.column===stoppedColumn)errors.push('Shoe '+audit.number+': bet after column stop');
     if(priorTie&&(bet.hand!==priorTie.hand+1||bet.bet!==priorTie.bet||bet.column!==priorTie.column||!eq(bet.stake,priorTie.stake)))errors.push('Shoe '+audit.number+': tie repeat incorrect');
     if(!priorTie&&bet.column!==prevCol){prevCol=bet.column;losses=0;stake=isRecovery?base.start*base.recoveryMult:base.start;prevStake=0;stoppedColumn=null}
-    if(!eq(bet.stake,stake))errors.push('Shoe '+audit.number+' hand '+bet.hand+': progression stake incorrect');
+    if(!eq(bet.stake,stake))errors.push('Shoe '+audit.number+' hand '+bet.hand+': expected '+stake+' units, recorded '+bet.stake+'; column '+bet.column+'; recovery='+isRecovery+'; losses='+losses);
     if(losses>=base.steps)errors.push('Shoe '+audit.number+': progression exceeds four losses');
     const delta=bet.outcome==='T'?0:bet.outcome===bet.bet?bet.stake*(bet.bet==='B'?0.95:1):-bet.stake;
     running+=delta;
