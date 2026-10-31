@@ -219,7 +219,7 @@ comparison.insertAdjacentElement('afterend',stopCompare);
 
 const verifyOne=document.createElement('section');verifyOne.className='panel';verifyOne.id='cc-verify-one';
 verifyOne.innerHTML='<h2>🧪 Verify 1-Column Strategy</h2><p class="muted">Generate 10,000 completely new shuffled shoes and test one winning column with your current road, Match/Mismatch, progression, cap and recovery settings. Fresh shoes replace the currently loaded simulation set, so export any shoes you want to keep first. This tests repeatability, not a guaranteed casino advantage.</p><button type="button" class="player" id="cc-verify-one-run">Verify 1-Column Strategy</button><p class="muted" id="cc-verify-one-status">Ready for a fresh independent test.</p><div id="cc-verify-one-results"></div>';
-stopCompare.insertAdjacentElement('afterend',verifyOne);
+stopCompare.appendChild(verifyOne);
 $('cc-verify-one-run').onclick=async()=>{
  const button=$('cc-verify-one-run'),status=$('cc-verify-one-status'),output=$('cc-verify-one-results');
  const generator=$('shoe-gen-run'),selector=$('shoe-gen-count');
