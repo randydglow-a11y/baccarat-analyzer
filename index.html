@@ -371,7 +371,7 @@ save.addEventListener('click',()=>{
 function init(){
  const main=document.querySelector('main');if(!main||document.getElementById('simple-home'))return;
  const home=document.createElement('section');home.className='panel';home.id='simple-home';
- home.innerHTML='<h2>Strategy Center</h2><p class="muted">One question: What could 10 shoes a day look like for my strategy?</p><div class="mode-tabs"><button class="secondary" id="simple-auto" aria-pressed="true">Find Best Setup</button><button class="secondary" id="simple-manual" aria-pressed="false">Test My Setup</button></div><p id="simple-mode-note" class="muted"></p><label>Shoes per day <input id="simple-shoes-day" type="number" min="1" max="100" value="10"></label><div class="simple-grid" style="margin-top:12px"><div class="simple-tile"><small>Daily net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Monthly net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Profitable days</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Bankroll drawdown</small><strong>Not calculated</strong></div></div><p class="muted">These figures require a bet-by-bet simulator. Historical road hit rates alone cannot establish profitability.</p><div class="actions"><button id="simple-open" class="player">Open analyzer</button><button id="simple-advanced" class="secondary" aria-expanded="false">Show advanced tools</button></div>';
+ home.innerHTML='<h2>Strategy Center</h2><p class="muted">One question: What could 10 shoes a day look like for my strategy?</p><div class="mode-tabs"><button class="secondary" id="simple-auto" aria-pressed="true">Find Best Setup</button><button class="secondary" id="simple-manual" aria-pressed="false">Test My Setup</button></div><p id="simple-mode-note" class="muted"></p><label>Shoes per day <input id="simple-shoes-day" type="number" min="1" max="100" value="10"></label><div class="simple-grid" style="margin-top:12px"><div class="simple-tile"><small>Daily net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Monthly net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Profitable days</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Bankroll drawdown</small><strong>Not calculated</strong></div></div><p class="muted"><span id="simple-profit-note">Generate or load shoes, then run Test my strategy in Custom Cockroach to populate these figures. Historical road hit rates alone cannot establish profitability.</span></p><div class="actions"><button id="simple-open" class="player">Open analyzer</button><button id="simple-advanced" class="secondary" aria-expanded="false">Show advanced tools</button></div>';
  const heading=main.querySelector('h1');heading.insertAdjacentElement('afterend',home);
  const sections=[...main.querySelectorAll(':scope > section.panel')].filter(el=>el!==home);
  const advanced=document.createElement('div');advanced.id='simple-advanced-sections';home.insertAdjacentElement('afterend',advanced);
@@ -386,6 +386,28 @@ function init(){
  open.onclick=()=>{showAdvanced();const title=mode==='auto'?'All-Shoes Strategy Analyzer':'Strategy Comparison Dashboard';const section=sections.find(x=>x.querySelector('h2')?.textContent===title);section?.scrollIntoView({behavior:'smooth',block:'start'})};
  advanced.hidden=true;render();
 }
+window.addEventListener('baccarat-profit-results',function(e){
+ const home=document.getElementById('simple-home');if(!home)return;
+ const profits=e.detail.profits,dayInput=document.getElementById('simple-shoes-day');
+ if(!profits.length)return;
+ const tiles=home.querySelectorAll('.simple-tile strong');
+ function update(){
+  const perDay=Math.max(1,Math.min(100,Math.floor(Number(dayInput.value)||10)));
+  const mean=profits.reduce((a,b)=>a+b,0)/profits.length;
+  const dayNet=mean*perDay,monthNet=dayNet*22;
+  let seed=93417;function random(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
+  let positive=0,peak=0,running=0,drawdown=0;
+  const trials=2000;
+  for(let t=0;t<trials;t++){let net=0;for(let i=0;i<perDay;i++)net+=profits[Math.floor(random()*profits.length)];if(net>0)positive++}
+  for(let i=0;i<Math.min(2200,perDay*220);i++){running+=profits[Math.floor(random()*profits.length)];peak=Math.max(peak,running);drawdown=Math.max(drawdown,peak-running)}
+  tiles[0].textContent=(dayNet>=0?'+':'')+dayNet.toFixed(2);
+  tiles[1].textContent=(monthNet>=0?'+':'')+monthNet.toFixed(2);
+  tiles[2].textContent=(positive/trials*100).toFixed(1)+'%';
+  tiles[3].textContent=drawdown.toFixed(2)+' units';
+  const info=home.querySelector('#simple-profit-note');if(info)info.textContent='Based on '+profits.length+' tested shoes. Monthly projection assumes 22 playing days. Profitable-day rate: 2,000 resampled days; drawdown: one resampled 220-day path. These are sample-based estimates, not guaranteed returns or evidence of an edge.';
+ }
+ dayInput.onchange=update;update();
+});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script></body></html>
