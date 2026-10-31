@@ -512,10 +512,10 @@ function setup(){
  const actions=[
   ['🎮 Live play',()=>document.getElementById('live-companion'),true],
   ['🎲 Generate shoes',()=>document.getElementById('shoe-generator')],
-  ['📈 Test strategy',()=>document.getElementById('custom-cockroach')],
+  ['📈 Test strategy',()=>document.getElementById('custom-cockroach')||document.getElementById('strategy-test-dashboard')||document.getElementById('bet-backtest')],
   ['📅 Daily goal',()=>document.getElementById('cc-daily-target')],
   ['🏆 Find best setup',()=>document.getElementById('cc-best-strategy')||document.querySelector('[id*="best-strategy"],[id*="optimizer"]')||Array.from(document.querySelectorAll('section')).find(e=>/best (strategy|setup)|find my best/i.test(e.textContent.slice(0,250)))],
-  ['🧪 Audits & extras',()=>document.getElementById('cc-deep-audit')]
+  ['🧪 Audits & extras',()=>document.getElementById('cc-deep-audit')||document.getElementById('cc-audit')||document.getElementById('bet-backtest')]
  ];
  for(const [label,locate,isLive] of actions){
   const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=label;
@@ -529,7 +529,7 @@ function setup(){
     try{localStorage.setItem('baccarat-live-mode','0')}catch(e){}
    }
    const target=locate();
-   if(!target){alert('This workspace is not available yet.');return}
+   if(!target){if(typeof openBaccaratWorkspace==='function'){openBaccaratWorkspace(/strategy/i.test(label)?'strategy':'extras');return;}alert('The strategy tools have not loaded. Please reload the page.');return}
    const panel=target.closest('section.panel')||target;
    // Reveal the destination and every containing panel, including sections hidden by CSS.
    for(let ancestor=target;ancestor&&ancestor!==document.body;ancestor=ancestor.parentElement){
