@@ -22,24 +22,30 @@ function nextStake(current,previous,config){switch(config.mode){case 'flat':retu
 function preview(){const c=settings();let current=c.start,previous=0,seq=[];for(let i=0;i<6;i++){seq.push(Number(current.toFixed(2)));const next=nextStake(current,previous,c);previous=current;current=next} $('cc-preview').textContent='Stake sequence: '+seq.join(' → ')+' units'}
 for(const id of ['cc-strategy','cc-rows','cc-mode','cc-start','cc-add','cc-mult','cc-cap','cc-wins'])$(id).addEventListener('change',preview);preview();
 async function run(shoes){
- const config=settings();const result={bets:0,wins:0,losses:0,pushes:0,net:0,peak:0,drawdown:0,stakeMax:0,maxLossRun:0,lossRun:0,completed:0,exhausted:0,capStops:0,twoWinShoes:0,profitableShoes:0,losingShoes:0,evenShoes:0};
+ const config=settings();const result={bets:0,wins:0,losses:0,pushes:0,net:0,peak:0,drawdown:0,stakeMax:0,maxLossRun:0,lossRun:0,completed:0,exhausted:0,capStops:0,twoWinShoes:0,profitableShoes:0,losingShoes:0,evenShoes:0,totalColumns:0,playedColumns:0,winningColumns:0,losingColumns:0};
  for(let j=0;j<shoes.length;j++){
   const shoeStartNet=result.net;
-  const history=[];let column=-1,lossesInColumn=0,stopped=false,stake=config.start,previousStake=0,columnWins=0,pendingTieBet=null;const cap=config.cap;
+  const shoePlayed=new Set(),shoeWon=new Set();
+  result.totalColumns+=Math.ceil(road.derived(road.buildBig(shoes[j]),3).length/config.rows);
+  const history=[];let column=-1,lossesInColumn=0,stopped=false,stake=config.start,previousStake=0,columnWins=0,pendingTieBet=null,pendingTieColumn=null;const cap=config.cap;
   for(const outcome of shoes[j]){
    const signal=nextSignal(history,config);
    if(!pendingTieBet&&signal&&signal.col!==column){column=signal.col;lossesInColumn=0;stopped=false}
    const bet=pendingTieBet||(signal&&!stopped?signal.bet:null);
    if(bet){
-    if(stake>cap){stopped=true;stake=config.start;previousStake=0;pendingTieBet=null;result.capStops++;history.push(outcome);continue}result.stakeMax=Math.max(result.stakeMax,stake);result.bets++;
-    if(outcome==='T'){result.pushes++;pendingTieBet=bet;}
-    else if(outcome===bet){pendingTieBet=null;result.wins++;result.net+=stake*(bet==='B'?.95:1);result.lossRun=0;stake=config.start;previousStake=0;stopped=true;columnWins++;result.completed++}
-    else{pendingTieBet=null;result.losses++;result.net-=stake;const next=nextStake(stake,previousStake,config);previousStake=stake;stake=next;lossesInColumn++;result.lossRun++;result.maxLossRun=Math.max(result.maxLossRun,result.lossRun);if(lossesInColumn>=4){stopped=true;result.exhausted++}}
+    const betColumn=pendingTieBet?pendingTieColumn:signal.col;
+    if(stake>cap){stopped=true;stake=config.start;previousStake=0;pendingTieBet=null;pendingTieColumn=null;result.capStops++;history.push(outcome);continue}shoePlayed.add(betColumn);result.stakeMax=Math.max(result.stakeMax,stake);result.bets++;
+    if(outcome==='T'){result.pushes++;pendingTieBet=bet;pendingTieColumn=betColumn;}
+    else if(outcome===bet){pendingTieBet=null;pendingTieColumn=null;shoeWon.add(betColumn);result.wins++;result.net+=stake*(bet==='B'?.95:1);result.lossRun=0;stake=config.start;previousStake=0;stopped=true;columnWins++;result.completed++}
+    else{pendingTieBet=null;pendingTieColumn=null;result.losses++;result.net-=stake;const next=nextStake(stake,previousStake,config);previousStake=stake;stake=next;lossesInColumn++;result.lossRun++;result.maxLossRun=Math.max(result.maxLossRun,result.lossRun);if(lossesInColumn>=4){stopped=true;result.exhausted++}}
     result.peak=Math.max(result.peak,result.net);result.drawdown=Math.max(result.drawdown,result.peak-result.net);
    }
    history.push(outcome);
    if(columnWins>=config.wins){result.twoWinShoes++;break}
   }
+  result.playedColumns+=shoePlayed.size;
+  result.winningColumns+=shoeWon.size;
+  result.losingColumns+=shoePlayed.size-shoeWon.size;
   const shoeNet=result.net-shoeStartNet;
   if(shoeNet>0.0000001)result.profitableShoes++;else if(shoeNet< -0.0000001)result.losingShoes++;else result.evenShoes++;
   if(j%5===4){$('cc-status').textContent='Testing shoe '+(j+1)+' / '+shoes.length+'…';await new Promise(resolve=>setTimeout(resolve,0))}
@@ -51,9 +57,9 @@ $('cc-run').onclick=async()=>{
  await new Promise(resolve=>setTimeout(resolve,30));
  try{
   const s=await run(shoes),rate=s.wins+s.losses?(100*s.wins/(s.wins+s.losses)).toFixed(1)+'%':'—';
-  const values=[['Bets',s.bets],['Wins / Losses',s.wins+' / '+s.losses],['Bet win rate',rate],['Profitable shoe rate',shoes.length?(100*s.profitableShoes/shoes.length).toFixed(1)+'%':'—'],['Winning / Losing / Even shoes',s.profitableShoes+' / '+s.losingShoes+' / '+s.evenShoes],['Net units',(s.net>=0?'+':'')+s.net.toFixed(2)],['Largest stake',s.stakeMax+' units'],['Max drawdown',s.drawdown.toFixed(2)+' units'],['Longest losing streak',s.maxLossRun],['4-loss column stops',s.exhausted],['Stake-limit stops',s.capStops],['Shoes reaching win target',s.twoWinShoes],['Win stops',s.completed],['Tie pushes',s.pushes]];
+  const values=[['Bets',s.bets],['Wins / Losses',s.wins+' / '+s.losses],['Bet win rate',rate],['Played-column win rate',s.playedColumns?(100*s.winningColumns/s.playedColumns).toFixed(1)+'%':'—'],['Total-column hit rate',s.totalColumns?(100*s.winningColumns/s.totalColumns).toFixed(1)+'%':'—'],['Winning / Losing played columns',s.winningColumns+' / '+s.losingColumns],['Played / Total columns',s.playedColumns+' / '+s.totalColumns],['Profitable shoe rate',shoes.length?(100*s.profitableShoes/shoes.length).toFixed(1)+'%':'—'],['Winning / Losing / Even shoes',s.profitableShoes+' / '+s.losingShoes+' / '+s.evenShoes],['Net units',(s.net>=0?'+':'')+s.net.toFixed(2)],['Largest stake',s.stakeMax+' units'],['Max drawdown',s.drawdown.toFixed(2)+' units'],['Longest losing streak',s.maxLossRun],['4-loss column stops',s.exhausted],['Stake-limit stops',s.capStops],['Shoes reaching win target',s.twoWinShoes],['Win stops',s.completed],['Tie pushes',s.pushes]];
   $('cc-stats').replaceChildren();for(const [name,value] of values){const d=document.createElement('div');d.style.cssText='background:#0d1a2c;border-radius:10px;padding:10px';const a=document.createElement('strong');a.style.cssText='display:block;font-size:20px';a.textContent=value;const b=document.createElement('span');b.style.cssText='color:#a8b9d2;font-size:12px';b.textContent=name;d.append(a,b);$('cc-stats').append(d)}
-  $('cc-status').textContent='Completed '+shoes.length+' simulated shoes. Betting decisions used only earlier hands. Ties excluded from win rate.';
+  $('cc-status').textContent='Completed '+shoes.length+' simulated shoes. Betting decisions used only earlier hands. Ties excluded from bet win rate. Total columns include the entire original shoe, even if the selected stop rule ends betting early.';
  }catch(e){$('cc-status').textContent='Error: '+e.message}
  finally{$('cc-run').disabled=false}
 };
