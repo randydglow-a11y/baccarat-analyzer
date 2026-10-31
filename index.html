@@ -458,4 +458,48 @@ window.addEventListener('baccarat-profit-results',function(e){
 });
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script></body></html>
+</script>
+<style>
+#cc-simple-nav{background:#142940;border:1px solid #416384;border-radius:15px;padding:13px;margin:12px 0;scroll-margin-top:110px}
+#cc-simple-nav h2{margin:0 0 6px;font-size:18px}
+#cc-simple-nav .cc-nav-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+#cc-simple-nav button{padding:12px 7px;font-size:13px;min-width:0}
+.cc-fold-panel{scroll-margin-top:115px}
+.cc-fold-panel>.cc-fold-toggle{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:transparent;color:#dcecff;border:1px solid #49617e;border-radius:9px;padding:9px 12px;margin:0 0 12px;font-size:13px}
+.cc-fold-panel.cc-is-folded>*:not(.cc-fold-toggle):not(h2){display:none!important}
+.cc-fold-panel.cc-is-folded>h2{margin-bottom:10px}
+#cc-simple-nav .cc-nav-help{font-size:12px;color:#b8c8dc;line-height:1.5;margin:7px 0 0}
+@media(max-width:420px){#cc-simple-nav{padding:11px}#cc-simple-nav button{font-size:12px}}
+</style>
+<script>
+(function(){
+'use strict';
+function setup(){
+ const home=document.getElementById('custom-cockroach'),daily=document.getElementById('cc-daily-target');
+ if(!home||!daily||document.getElementById('cc-simple-nav'))return;
+ const nav=document.createElement('section');nav.id='cc-simple-nav';
+ nav.innerHTML='<h2>🧭 Quick workspace</h2><p class="cc-nav-help">Use the main tools first. Extra comparisons and audits are folded away until you need them.</p><div class="cc-nav-buttons"></div>';
+ const dash=document.querySelector('.dashboard-nav');
+ if(dash)dash.insertAdjacentElement('afterend',nav);else home.parentNode.insertBefore(nav,home);
+ const actions=[
+  ['🎮 Live play',()=>document.getElementById('road')?.closest('.panel')],
+  ['🎲 Generate shoes',()=>document.getElementById('shoe-generator')],
+  ['📈 Test strategy',()=>document.getElementById('custom-cockroach')],
+  ['📅 Daily goal',()=>document.getElementById('cc-daily-target')],
+  ['🏆 Find best setup',()=>document.getElementById('cc-best-strategy')||Array.from(document.querySelectorAll('.panel')).find(e=>e.querySelector('h2')?.textContent.includes('Find My Best Strategy'))],
+  ['🧪 Audits & extras',()=>document.getElementById('cc-deep-audit')]
+ ];
+ for(const [label,locate] of actions){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=label;button.onclick=()=>{const target=locate();if(!target)return;target.classList.remove('cc-is-folded');const toggle=target.querySelector(':scope > .cc-fold-toggle');if(toggle)toggle.setAttribute('aria-expanded','true');target.scrollIntoView({behavior:'smooth',block:'start'})};nav.querySelector('.cc-nav-buttons').append(button)}
+ const foldTargets=['cc-audit','cc-validation','cc-deep-audit','cc-three-way','cc-stop-comparison'];
+ for(const id of foldTargets){const panel=document.getElementById(id);if(!panel||panel.querySelector(':scope > .cc-fold-toggle'))continue;
+  panel.classList.add('cc-fold-panel','cc-is-folded');
+  const button=document.createElement('button');button.type='button';button.className='cc-fold-toggle';button.setAttribute('aria-expanded','false');button.textContent='Show tools and results  ▾';
+  button.onclick=()=>{const folded=panel.classList.toggle('cc-is-folded');button.textContent=folded?'Show tools and results  ▾':'Hide tools and results  ▴';button.setAttribute('aria-expanded',String(!folded))};
+  const heading=panel.querySelector(':scope > h2');if(heading)heading.insertAdjacentElement('afterend',button);else panel.prepend(button);
+ }
+ // Keep the most useful controls expanded: strategy, daily goal and shoe generation.
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
+})();
+</script>
+</body></html>
