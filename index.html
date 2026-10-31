@@ -517,6 +517,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 body.live-play-mode main>section.panel,body.live-play-mode main>.dashboard-nav,body.live-play-mode main>.actions,body.live-play-mode main>.dashboard-tools,body.live-play-mode main>#cc-simple-nav{display:none!important}
 body.live-play-mode #live-companion{display:block!important}
 
+body.live-play-mode main>section.panel:has(#road-rows),
 body.live-play-mode main>section.panel:has(#road),
 body.live-play-mode main>section.panel:has(#big-road){display:block!important;padding:11px;margin:9px 0}
 body.live-play-mode main>section.panel:has(#road)>h2,
@@ -527,6 +528,9 @@ body.live-play-mode main>section.panel:has(#big-road) .roadwrap{margin-bottom:9p
 body.live-play-mode main>section.panel:has(#big-road) .roadmap-help,
 body.live-play-mode main>section.panel:has(#big-road) .note{display:none}
 body.live-play-mode main>section.panel:has(#road)>p.muted{display:none}
+body.live-play-mode main>section.panel:has(#road-rows){display:block!important;padding:11px;margin:9px 0}
+body.live-play-mode main>section.panel:has(#road-rows) h2{font-size:16px;margin-bottom:8px}
+body.live-play-mode #road-rows{padding:10px;margin-top:5px}
 body.live-play-mode main>section.panel:has(#big-road) .advanced-road{gap:3px}
 body.live-play-mode main>section.panel:has(#big-road) .roadmark{width:27px;height:27px}
 
