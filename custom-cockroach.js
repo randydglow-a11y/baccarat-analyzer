@@ -172,6 +172,47 @@ $('cc-recovery-run').onclick=async()=>{
  }catch(e){status.textContent='Recovery check error: '+e.message}
  finally{button.disabled=false}
 };
+const comparison=document.createElement('section');comparison.className='panel';comparison.id='cc-three-way';
+comparison.innerHTML='<h2>📈 Three-strategy comparison</h2><p class="muted">Compare flat betting, Double + 1, and Double + 1 with next-shoe recovery on the SAME 5,000 shoes. Reserve a separate 5,000-shoe holdout when 10,000 are loaded. Uses your selected road, Match/Mismatch, rows and winning-column stop; each setup starts at 1 unit and uses a four-bet progression cap. No setup is guaranteed to win.</p><button id="cc-three-run" type="button" class="player">Compare three strategies</button><p id="cc-three-status" class="muted">Load at least 5,000 shoes to begin.</p><div id="cc-three-results" style="overflow-x:auto"></div>';
+recoveryCheck.insertAdjacentElement('afterend',comparison);
+$('cc-three-run').onclick=async()=>{
+ const button=$('cc-three-run'),status=$('cc-three-status'),output=$('cc-three-results');
+ if(!dataset||dataset.size<5000){status.textContent='Load 5,000 or more shoes first. Currently loaded: '+(dataset?.size||0)+'.';return}
+ button.disabled=true;output.replaceChildren();
+ try{
+  const all=Array.from(dataset.values()),training=all.slice(0,5000),holdout=all.length>=10000?all.slice(5000,10000):null;
+  const base={...settings(),start:1,capMethod:'steps',steps:4};
+  const choices=[{name:'Flat · 1 unit',mode:'flat',recovery:false},{name:'Double + 1 · 4 bets',mode:'doubleplus',recovery:false},{name:'Double + 1 + next-shoe recovery',mode:'doubleplus',recovery:true}];
+  const format=n=>(n>=0?'+':'')+n.toFixed(2);
+  const summarize=r=>{
+   const p=r.shoeAudits.map(a=>a.net),batch=[];
+   for(let i=0;i<5;i++){const n=p.slice(i*1000,(i+1)*1000).reduce((a,b)=>a+b,0);batch.push(n)}
+   let peak=0,cumulative=0,dd=0;
+   for(const n of p){cumulative+=n;peak=Math.max(peak,cumulative);dd=Math.max(dd,peak-cumulative)}
+   return {net:r.net,avg:r.net/p.length,drawdown:dd,positive:batch.filter(x=>x>0).length,batches:batch};
+  };
+  const results=[];
+  for(let i=0;i<choices.length;i++){
+   const choice=choices[i],cfg={...base,mode:choice.mode,recovery:choice.recovery};
+   status.textContent='Testing '+(i+1)+' / 3: '+choice.name+' on 5,000 training shoes…';
+   const train=summarize(await run(training,null,false,cfg));
+   let test=null;
+   if(holdout){status.textContent='Testing '+choice.name+' on reserved holdout shoes…';test=summarize(await run(holdout,null,false,cfg))}
+   results.push({...choice,train,test});
+   await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  const table=document.createElement('table');table.style.cssText='width:100%;min-width:620px;font-size:12px;text-align:left';
+  const header=['Setup','Train net','Units/shoe','Train max drawdown','Positive batches / 5','Holdout net','Holdout max drawdown'];
+  const makeRow=(values,heading=false)=>{const tr=document.createElement('tr');for(const value of values){const cell=document.createElement(heading?'th':'td');cell.textContent=value;cell.style.cssText='padding:9px 7px;border-bottom:1px solid #405573';tr.append(cell)}table.append(tr)};
+  makeRow(header,true);
+  results.forEach(x=>makeRow([x.name,format(x.train.net),format(x.train.avg),x.train.drawdown.toFixed(2),x.train.positive+'/5',x.test?format(x.test.net):'Not available',x.test?x.test.drawdown.toFixed(2):'—']));
+  output.append(table);
+  for(const x of results){const p=document.createElement('p');p.className='muted';p.textContent=x.name+' · training batches (1,000 shoes each): '+x.train.batches.map(format).join(' / ')+(x.test?' · holdout batches: '+x.test.batches.map(format).join(' / '):'');output.append(p)}
+  const note=document.createElement('p');note.className='muted';note.textContent=holdout?'Training: shoes 1–5,000. Holdout: shoes 5,001–10,000. All three setups tested on identical shoes within each group. Drawdown is the maximum decline from the prior cumulative peak in that shoe order.':'Only 5,000 shoes were available; generate 10,000 for a separate holdout. Drawdown is the maximum decline from the prior cumulative peak in shoe order.';output.append(note);
+  status.textContent='Comparison finished. Positive simulation results do not demonstrate a sustainable advantage over the house edge.';
+ }catch(e){status.textContent='Comparison error: '+e.message}
+ finally{button.disabled=false}
+};
 const optimizer=document.createElement('section');optimizer.className='panel';optimizer.id='cc-optimizer';
 optimizer.innerHTML='<h2>📊 Strategy Optimizer</h2><p class="muted">Compare betting progressions on identical training shoes, then evaluate the best candidates on separate holdout shoes. Keeps your selected Match/Mismatch strategy and row count. Uses one winning column per shoe. Training results are not evidence of a guaranteed advantage.</p><div class="actions"><label>Training shoes <select id="cc-opt-train"><option value="250">250</option><option value="500" selected>500</option><option value="1000">1,000</option><option value="2000">2,000</option></select></label><label>Holdout shoes <select id="cc-opt-test"><option value="250">250</option><option value="500" selected>500</option><option value="1000">1,000</option><option value="2000">2,000</option></select></label><button type="button" class="player" id="cc-opt-run">Compare setups</button></div><p class="muted" id="cc-opt-status">Generate or upload shoes to start. Requires enough shoes for both groups.</p><div id="cc-opt-results" style="overflow-x:auto"></div>';
 validation.insertAdjacentElement('afterend',optimizer);
