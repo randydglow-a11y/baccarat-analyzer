@@ -134,35 +134,39 @@ $('cc-recovery-run').onclick=async()=>{
   const shoes=Array.from(dataset.values()).slice(0,Math.min(1000,dataset.size));
   const base={...settings(),capMethod:'steps',steps:4,start:1,mode:'doubleplus',wins:Infinity,recovery:true,recoveryMult:5};
   const sim=await run(shoes,null,false,base),normal=progression(base),boosted=recoveryProgression(base);
-  const errors=[];let tieCount=0,checked=0,recoveryShoes=0,expectRecovery=false;
+  const errors=[];let tieCount=0,checked=0,recoveryShoes=0,expectedRecovery=false;
   const eq=(a,b)=>Math.abs(a-b)<0.00001;
   for(const audit of sim.shoeAudits){
-   const isRecovery=audit.recoveryShoe; if(isRecovery!==expectRecovery)errors.push('Shoe '+audit.number+': recovery transition mismatch (expected '+expectRecovery+', actual '+isRecovery+')'); if(isRecovery)recoveryShoes++;
-   expectRecovery=false;let lossSum=0,running=0,priorTie=null,prevCol=null,losses=0,stake=isRecovery?base.start*base.recoveryMult:base.start,prevStake=0,stoppedColumn=null;
+   const isRecovery=audit.recoveryShoe;
+   if(isRecovery)recoveryShoes++;
+   if(isRecovery!==expectedRecovery)errors.push('Shoe '+audit.number+': incorrect recovery transition');
+   expectedRecovery=audit.queuedRecovery;
    const limit=isRecovery?boosted.total:normal.total;
+   let running=0,grossLoss=0,priorTie=null,prevBet=null;
    for(const bet of audit.bets){
     checked++;
-    if(stoppedColumn!==null&&bet.column===stoppedColumn)errors.push('Shoe '+audit.number+': bet after column stop');
-    if(priorTie&&(bet.hand!==priorTie.hand+1||bet.bet!==priorTie.bet||bet.column!==priorTie.column||!eq(bet.stake,priorTie.stake)))errors.push('Shoe '+audit.number+': tie repeat incorrect');
-    if(!priorTie&&bet.column!==prevCol){prevCol=bet.column;losses=0;stake=isRecovery?base.start*base.recoveryMult:base.start;prevStake=0;stoppedColumn=null}
-    if(!eq(bet.stake,stake))errors.push('Shoe '+audit.number+' hand '+bet.hand+': expected '+stake+' units, recorded '+bet.stake+'; column '+bet.column+'; recovery='+isRecovery+'; losses='+losses);
-    if(losses>=base.steps)errors.push('Shoe '+audit.number+': progression exceeds four losses');
-    const delta=bet.outcome==='T'?0:bet.outcome===bet.bet?bet.stake*(bet.bet==='B'?0.95:1):-bet.stake;
+    const state=bet.state;
+    if(!state){errors.push('Shoe '+audit.number+' hand '+bet.hand+': missing wager state');continue}
+    if(state.recoveryShoe!==isRecovery)errors.push('Shoe '+audit.number+' hand '+bet.hand+': recovery flag mismatch');
+    if(state.activeColumn!==bet.column)errors.push('Shoe '+audit.number+' hand '+bet.hand+': active column mismatch');
+    if(state.lossesBefore>=base.steps)errors.push('Shoe '+audit.number+' hand '+bet.hand+': wager after progression cap');
+    if(!eq(state.expectedStake,bet.stake))errors.push('Shoe '+audit.number+' hand '+bet.hand+': recorded stake differs from simulator state');
+    const seq=isRecovery?boosted.seq:normal.seq;
+    if(!eq(bet.stake,seq[state.lossesBefore]))errors.push('Shoe '+audit.number+' hand '+bet.hand+': progression mismatch (expected '+seq[state.lossesBefore]+', recorded '+bet.stake+', recovery='+isRecovery+', losses='+state.lossesBefore+')');
+    if(state.tieCarry!==Boolean(priorTie))errors.push('Shoe '+audit.number+' hand '+bet.hand+': tie carry state mismatch');
+    if(priorTie&&(bet.hand!==priorTie.hand+1||bet.bet!==priorTie.bet||bet.column!==priorTie.column||!eq(bet.stake,priorTie.stake)))errors.push('Shoe '+audit.number+' hand '+bet.hand+': tie repeat mismatch');
+    if(!priorTie&&prevBet&&bet.column===prevBet.column&&prevBet.outcome!== 'T'&&prevBet.delta>0)errors.push('Shoe '+audit.number+' hand '+bet.hand+': bet after winning column');
+    const delta=bet.outcome==='T'?0:bet.outcome===bet.bet?bet.stake*(bet.bet==='B'?.95:1):-bet.stake;
     running+=delta;
-    if(!eq(delta,bet.delta)||!eq(running,bet.net))errors.push('Shoe '+audit.number+' hand '+bet.hand+': wager accounting incorrect');
-    if(bet.outcome==='T'){tieCount++;priorTie=bet}
-    else{
-     priorTie=null;
-     if(delta<0){lossSum+=bet.stake;const next=nextStake(stake,prevStake,{...base});prevStake=stake;stake=next;losses++;if(losses>=base.steps){stoppedColumn=bet.column;if(!isRecovery)expectRecovery=true}}
-     else{stoppedColumn=bet.column;stake=isRecovery?base.start*base.recoveryMult:base.start;prevStake=0}
-    }
-    if(lossSum>limit+0.00001)errors.push('Shoe '+audit.number+': shoe loss cap exceeded');
+    if(delta<0)grossLoss+=bet.stake;
+    if(!eq(delta,bet.delta)||!eq(running,bet.net))errors.push('Shoe '+audit.number+' hand '+bet.hand+': payout or running net mismatch');
+    if(grossLoss>limit+0.00001)errors.push('Shoe '+audit.number+' hand '+bet.hand+': shoe gross loss cap exceeded');
+    if(!eq(state.shoeGrossLossBefore,grossLoss-(delta<0?bet.stake:0)))errors.push('Shoe '+audit.number+' hand '+bet.hand+': prior gross loss state mismatch');
+    if(bet.outcome==='T'){tieCount++;priorTie=bet}else priorTie=null;
+    prevBet=bet;
    }
-   if(!eq(running,audit.net))errors.push('Shoe '+audit.number+': shoe net mismatch');
-   // Recovery is queued only by a completed four-loss progression or the loss cap.
-   // Do not clear a newly queued recovery after inspecting a recovery shoe.
-   if(!isRecovery&&lossSum>=limit-0.00001)expectRecovery=true;
-   if(audit.queuedRecovery!==expectRecovery)errors.push('Shoe '+audit.number+': queued recovery transition mismatch');
+   if(!eq(running,audit.net)||!eq(grossLoss,audit.shoeGrossLoss))errors.push('Shoe '+audit.number+': final accounting mismatch');
+   if(!eq(limit,audit.shoeLossCap))errors.push('Shoe '+audit.number+': incorrect loss cap');
   }
   status.textContent=errors.length?'Found '+errors.length+' potential issue(s): '+errors.slice(0,5).join('; '):'Checks passed on '+shoes.length+' shoes, '+checked+' wagers, '+tieCount+' ties and '+recoveryShoes+' recovery shoes. This confirms internal wager arithmetic and checked limits, not an advantage over the casino.';
  }catch(e){status.textContent='Recovery check error: '+e.message}
