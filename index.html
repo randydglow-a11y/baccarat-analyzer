@@ -502,4 +502,56 @@ function setup(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
 </script>
+
+<style>
+#live-mode-switch{background:#147d79;white-space:nowrap}
+#live-companion{border-color:#347e83;background:#102b35}
+#live-companion .live-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#live-companion .live-stat{background:#0c202b;border-radius:10px;padding:11px}
+#live-companion .live-stat strong{display:block;font-size:21px;margin-top:4px}
+#live-companion input{width:100%;min-width:0;background:#0c202b;color:white;border:1px solid #537a86;border-radius:9px;padding:11px;font-size:16px}
+#live-companion label{display:block;font-size:12px;color:#bed3da}
+#live-companion .live-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+#live-companion .live-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#live-companion .live-actions button{padding:13px 6px;font-size:13px}
+body.live-play-mode main>section.panel,body.live-play-mode main>.dashboard-nav,body.live-play-mode main>.actions,body.live-play-mode main>.dashboard-tools,body.live-play-mode main>#cc-simple-nav{display:none!important}
+body.live-play-mode #live-companion{display:block!important}
+body.live-play-mode #dashboard-controls{display:flex!important}
+body.live-play-mode main{padding-bottom:100px}
+</style>
+<script>
+(function(){
+'use strict';
+function initLive(){
+ const controls=document.getElementById('dashboard-controls'),main=document.querySelector('main');
+ if(!controls||!main||document.getElementById('live-mode-switch'))return;
+ const switcher=document.createElement('button');switcher.type='button';switcher.id='live-mode-switch';switcher.textContent='Live mode';controls.append(switcher);
+ const panel=document.createElement('section');panel.className='panel';panel.id='live-companion';
+ panel.innerHTML='<h2>🎮 Live play companion</h2><p class="muted">Record each Banker, Player or Tie using the fixed buttons below. This is a manual session tracker, not a prediction or an automatic bet placer.</p><div class="live-stats"><div class="live-stat">Hands recorded<strong id="live-hand-count">0</strong></div><div class="live-stat">Last result<strong id="live-last-result">—</strong></div><div class="live-stat">Session net<strong id="live-net">0.00</strong></div><div class="live-stat">Current bankroll<strong id="live-bankroll">1,000.00</strong></div></div><div class="live-fields"><label>Starting bankroll (units)<input id="live-start" type="number" min="1" value="1000"></label><label>Standard stake (units)<input id="live-stake" type="number" min="0.01" step="0.5" value="1"></label><label>Profit goal (%)<input id="live-goal" type="number" min="0.1" step="0.5" value="2"></label><label>Loss limit (%)<input id="live-limit" type="number" min="0.1" step="0.5" value="2"></label></div><p class="muted" id="live-goal-status">Daily goal and loss limits will be calculated from your starting bankroll.</p><p class="muted">After a resolved wager, log its actual outcome below. Banker win pays 0.95× stake, Player win 1×; a loss subtracts the stake. Ties push. These are manual financial entries separate from the B/P/T road history.</p><div class="live-actions"><button class="tie" id="live-win" type="button">Win</button><button class="banker" id="live-lose" type="button">Loss</button><button class="secondary" id="live-push" type="button">Push</button></div><div class="actions"><label style="flex:1">Winning side for commission<select id="live-side" style="width:100%;padding:11px;background:#0c202b;color:white;border:1px solid #537a86;border-radius:9px"><option value="B">Banker (0.95×)</option><option value="P">Player (1×)</option></select></label><button type="button" class="secondary" id="live-undo-bet">Undo wager</button><button type="button" class="secondary" id="live-new-day">New day</button></div><p class="muted" id="live-history-note">No wagers logged today.</p><button type="button" class="secondary" id="live-exit">Exit live mode</button>';
+ controls.insertAdjacentElement('afterend',panel);
+ let entries=[];try{entries=JSON.parse(localStorage.getItem('baccarat-live-wagers-v1')||'[]');if(!Array.isArray(entries))entries=[]}catch(e){entries=[]}
+ const $=id=>document.getElementById(id);
+ for(const [id,key,defaultValue] of [['live-start','start',1000],['live-stake','stake',1],['live-goal','goal',2],['live-limit','limit',2]]){try{const value=Number(localStorage.getItem('baccarat-live-'+key));if(Number.isFinite(value)&&value>0)$(id).value=value}catch(e){}}
+ function refresh(){
+  const opening=Math.max(1,Number($('live-start').value)||1000),net=entries.reduce((a,b)=>a+b,0),goal=opening*Math.max(.1,Number($('live-goal').value)||2)/100,limit=opening*Math.max(.1,Number($('live-limit').value)||2)/100;
+  $('live-net').textContent=(net>=0?'+':'')+net.toFixed(2);$('live-bankroll').textContent=(opening+net).toFixed(2);
+  $('live-goal-status').textContent=(net>=goal?'Profit goal reached. Consider stopping for today.':net<=-limit?'Daily loss limit reached. Consider stopping for today.':'Profit target: +'+goal.toFixed(2)+' units · Loss limit: −'+limit.toFixed(2)+' units')+' · Net today: '+net.toFixed(2);
+  $('live-history-note').textContent=entries.length+' wager entries today. Last: '+(entries.length?entries[entries.length-1].toFixed(2)+' units':'none')+'.';
+  const hands=window.hands||[];$('live-hand-count').textContent=hands.length;$('live-last-result').textContent=hands.length?({B:'Banker',P:'Player',T:'Tie'}[hands[hands.length-1]]||'—'):'—';
+ }
+ function save(){try{localStorage.setItem('baccarat-live-wagers-v1',JSON.stringify(entries))}catch(e){}refresh()}
+ $('live-win').onclick=()=>{const stake=Number($('live-stake').value);if(!(stake>0))return;entries.push(stake*($('live-side').value==='B'?.95:1));save()};
+ $('live-lose').onclick=()=>{const stake=Number($('live-stake').value);if(!(stake>0))return;entries.push(-stake);save()};
+ $('live-push').onclick=()=>{entries.push(0);save()};
+ $('live-undo-bet').onclick=()=>{if(entries.length){entries.pop();save()}};
+ $('live-new-day').onclick=()=>{if(confirm('Start a new day? This resets the live wager totals, but keeps your recorded road history.')){entries=[];save()}};
+ for(const [id,key] of [['live-start','start'],['live-stake','stake'],['live-goal','goal'],['live-limit','limit']])$(id).addEventListener('change',()=>{try{localStorage.setItem('baccarat-live-'+key,$(id).value)}catch(e){}refresh()});
+ function setLive(enabled){document.body.classList.toggle('live-play-mode',enabled);switcher.textContent=enabled?'Exit live':'Live mode';try{localStorage.setItem('baccarat-live-mode',enabled?'1':'0')}catch(e){}refresh();if(enabled)window.scrollTo({top:0,behavior:'instant'})}
+ switcher.onclick=()=>setLive(!document.body.classList.contains('live-play-mode'));$('live-exit').onclick=()=>setLive(false);
+ if(localStorage.getItem('baccarat-live-mode')==='1')setLive(true);else refresh();
+ document.addEventListener('click',e=>{if(e.target.closest('#mobile-entry-bar,#dashboard-controls'))setTimeout(refresh,0)});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initLive);else initLive();
+})();
+</script>
 </body></html>
