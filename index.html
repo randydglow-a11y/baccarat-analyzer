@@ -212,6 +212,15 @@ body:not(.live-play-mode) #cc-simple-nav .cc-nav-buttons{grid-template-columns:r
 body:not(.live-play-mode) #cc-simple-nav button{padding:9px 3px;font-size:11px;line-height:1.25}
 @media(max-width:420px){body:not(.live-play-mode) #cc-simple-nav{top:62px;max-height:38vh}}
 </style>
+<style>
+#cc-floating-workspace{position:fixed;right:12px;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:2147482000;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+#cc-floating-toggle{background:#167b83;color:white;border:1px solid #6bc7c6;border-radius:999px;padding:11px 15px;font-size:13px;font-weight:800;box-shadow:0 5px 20px #0009}
+#cc-floating-menu{background:#142940;border:1px solid #668ba5;border-radius:14px;padding:9px;width:min(285px,calc(100vw - 24px));box-shadow:0 10px 30px #000c;max-height:65vh;overflow-y:auto}
+#cc-floating-menu[hidden]{display:none!important}
+#cc-floating-menu button{display:block;width:100%;padding:12px 10px;margin:3px 0;text-align:left;font-size:14px;background:#253e5a;color:white;border:1px solid #4b6786;border-radius:9px}
+body.live-play-mode #cc-floating-workspace{display:none!important}
+@media(min-width:601px){#cc-floating-workspace{bottom:18px}}
+</style>
 </head>
 <body><div id="mobile-entry-bar" role="group" aria-label="Always available baccarat entry"><button type="button" class="banker" onclick="add('B')" aria-label="Record Banker">B</button><button type="button" class="player" onclick="add('P')" aria-label="Record Player">P</button><button type="button" class="tie" onclick="add('T')" aria-label="Record Tie">T</button><button type="button" class="mobile-undo" onclick="undo()" aria-label="Undo last result">↶</button><label class="mobile-row-picker" for="mobile-road-rows"><span>Road rows</span><select id="mobile-road-rows" aria-label="Rows per column for all roads"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option></select></label></div><main><div id="dashboard-controls"><strong>🃏 Dashboard</strong><div class="compact-entry"><button class="banker" onclick="add('B')" aria-label="Record Banker">B</button><button class="player" onclick="add('P')" aria-label="Record Player">P</button><button class="tie" onclick="add('T')" aria-label="Record Tie">T</button></div><button class="secondary compact-undo" onclick="undo()" aria-label="Undo last hand">↶</button><button id="gameplay-compact-toggle" type="button" aria-pressed="false">Compact</button><button id="dashboard-toggle" class="secondary" aria-pressed="false">Expand</button></div><h1>🃏 Baccarat Analyzer</h1><p class="muted">Live session tracker · Roadmap · Pattern history</p>
 <div class="dashboard-nav"><div id="dashboard-nav-links" class="dashboard-nav-links" aria-label="Quick navigation"></div></div>
@@ -544,6 +553,17 @@ function setup(){
   };
   nav.querySelector('.cc-nav-buttons').append(button);
  }
+ // Persistent floating workspace switcher; stays available even after a long scroll.
+ const floating=document.createElement('div');floating.id='cc-floating-workspace';
+ const opener=document.createElement('button');opener.type='button';opener.id='cc-floating-toggle';opener.textContent='☰ Workspaces';opener.setAttribute('aria-expanded','false');
+ const menu=document.createElement('div');menu.id='cc-floating-menu';menu.hidden=true;
+ nav.querySelectorAll('.cc-nav-buttons button').forEach(original=>{
+  const shortcut=document.createElement('button');shortcut.type='button';shortcut.textContent=original.textContent;
+  shortcut.onclick=()=>{menu.hidden=true;opener.setAttribute('aria-expanded','false');original.click()};
+  menu.append(shortcut);
+ });
+ opener.onclick=()=>{menu.hidden=!menu.hidden;opener.setAttribute('aria-expanded',String(!menu.hidden))};
+ floating.append(menu,opener);document.body.append(floating);
  const foldTargets=['cc-audit','cc-validation','cc-deep-audit','cc-three-way','cc-stop-comparison'];
  for(const id of foldTargets){const panel=document.getElementById(id);if(!panel||panel.querySelector(':scope > .cc-fold-toggle'))continue;
   panel.classList.add('cc-fold-panel','cc-is-folded');
