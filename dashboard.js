@@ -1,6 +1,7 @@
 (function(){
 'use strict';
 const KEY='baccarat-dashboard-layout-v2';
+try{document.body.classList.remove('compact-gameplay')}catch(e){}
 const main=document.querySelector('main');
 const panels=[...main.querySelectorAll('section.panel:not(.dashboard-tools)')];
 const sections=panels.map((el,i)=>({id:'section-'+i,title:el.querySelector('h2')?.textContent.trim()||'Section '+(i+1),el}));
@@ -102,7 +103,7 @@ compactButton.addEventListener('click',()=>{
  applyCompact();
  if(active)document.querySelector('section.panel:has(#road)')?.scrollIntoView({block:'start'});
 });
-try{if(localStorage.getItem(compactKey)==='1')document.body.classList.add('compact-gameplay')}catch(e){}
+// Do not restore compact mode automatically; it previously hid mobile navigation.
 document.getElementById('road-rows')?.addEventListener('change',()=>document.documentElement.style.setProperty('--compact-rows',String(window.getRoadDisplayRows?.()||6)));
 applyCompact();
 })();
