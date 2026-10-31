@@ -32,6 +32,7 @@ function drawManager(){
  }
 }
 document.getElementById('shoe-select').addEventListener('change',e=>{state.active=e.target.value;save()});
+window.startBaccaratNewShoe=function(){const s={id:id(),name:'Shoe '+(state.shoes.length+1),created:new Date().toISOString(),hands:[]};state.shoes.push(s);state.active=s.id;save();return {name:s.name,total:state.shoes.length};};
 document.getElementById('new-shoe').addEventListener('click',()=>{
  const name=prompt('Name the new shoe (optional):','Shoe '+(state.shoes.length+1));if(name===null)return;
  const s={id:id(),name:name.trim().slice(0,60)||'Shoe '+(state.shoes.length+1),created:new Date().toISOString(),hands:[]};
