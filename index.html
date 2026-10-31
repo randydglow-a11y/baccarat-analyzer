@@ -299,7 +299,7 @@ document.getElementById('history').innerHTML=hands.slice(-60).reverse().map(v=>'
   else if(!enabled&&document.fullscreenElement&&document.exitFullscreen){try{await document.exitFullscreen()}catch(e){}}
  });
 })();
-</script><script src="dashboard.js?v=20261031-mobile-quick-v4"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script><script src="pdf-import.js?v=20261029-pdf-v7"></script><script src="screenshot-import.js?v=20261029-v2"></script><script src="game-database.js?v=20261029-v1"></script><script src="wizard-replay.js?v=20261030-v10"></script><script src="strategy-testing.js?v=20261030-v1"></script><script src="road-batch.js?v=20261030-v1"></script><script src="bet-backtest.js?v=20261030-v1"></script><script src="custom-cockroach-daily-v20.js?v=startup-fix-20261031b"></script><script>
+</script><script src="dashboard.js?v=20261031-live-nav-v5"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script><script src="pdf-import.js?v=20261029-pdf-v7"></script><script src="screenshot-import.js?v=20261029-v2"></script><script src="game-database.js?v=20261029-v1"></script><script src="wizard-replay.js?v=20261030-v10"></script><script src="strategy-testing.js?v=20261030-v1"></script><script src="road-batch.js?v=20261030-v1"></script><script src="bet-backtest.js?v=20261030-v1"></script><script src="custom-cockroach-daily-v20.js?v=startup-fix-20261031b"></script><script>
 (function(){
  function ensureRecoveryVisible(){
   const validator=document.getElementById('cc-validation'),recovery=document.getElementById('cc-recovery-check');
@@ -588,7 +588,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #live-companion .live-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
 #live-companion .live-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 #live-companion .live-actions button{padding:13px 6px;font-size:13px}
-body.live-play-mode main>section.panel,body.live-play-mode main>.dashboard-nav,body.live-play-mode main>.actions,body.live-play-mode main>.dashboard-tools,body.live-play-mode main>#cc-simple-nav{display:none!important}
+body.live-play-mode main>section.panel,body.live-play-mode main>.actions,body.live-play-mode main>.dashboard-tools,body.live-play-mode main>#cc-simple-nav{display:block!important}
 body.live-play-mode #live-companion{display:block!important}
 
 body.live-play-mode main>section.panel:has(#road-rows),
@@ -641,7 +641,9 @@ function initLive(){
  for(const [id,key] of [['live-start','start'],['live-stake','stake'],['live-goal','goal'],['live-limit','limit']])$(id).addEventListener('change',()=>{try{localStorage.setItem('baccarat-live-'+key,$(id).value)}catch(e){}refresh()});
  function setLive(enabled){document.body.classList.toggle('live-play-mode',enabled);switcher.textContent=enabled?'Exit live':'Live mode';try{localStorage.setItem('baccarat-live-mode',enabled?'1':'0')}catch(e){}refresh();if(enabled)window.scrollTo({top:0,behavior:'instant'})}
  switcher.onclick=()=>setLive(!document.body.classList.contains('live-play-mode'));$('live-exit').onclick=()=>setLive(false);
- if(localStorage.getItem('baccarat-live-mode')==='1')setLive(true);else refresh();
+ // Start with workspace navigation visible; Live mode remains available by button.
+ try{localStorage.setItem('baccarat-live-mode','0')}catch(e){}
+ setLive(false);
  document.addEventListener('click',e=>{if(e.target.closest('#mobile-entry-bar,#dashboard-controls'))setTimeout(refresh,0)});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initLive);else initLive();
