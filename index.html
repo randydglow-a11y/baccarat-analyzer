@@ -274,6 +274,69 @@ document.getElementById('history').innerHTML=hands.slice(-60).reverse().map(v=>'
 })();
 </script><script src="dashboard.js?v=20261029-dashboard-v3"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script><script src="pdf-import.js?v=20261029-pdf-v7"></script><script src="screenshot-import.js?v=20261029-v2"></script><script src="game-database.js?v=20261029-v1"></script><script src="wizard-replay.js?v=20261030-v10"></script><script src="strategy-testing.js?v=20261030-v1"></script><script src="road-batch.js?v=20261030-v1"></script><script src="bet-backtest.js?v=20261030-v1"></script><script src="custom-cockroach.js?v=20261030-v14"></script><script>
 (function(){
+'use strict';
+const host=document.getElementById('custom-cockroach')||document.getElementById('road-batch');if(!host)return;
+const panel=document.createElement('section');panel.className='panel';panel.id='shoe-generator';
+panel.innerHTML='<h2>🎲 Generate New Baccarat Shoes</h2><p class="muted">Create fresh, shuffled eight-deck baccarat shoes on your phone—no download needed. Uses standard third-card rules, ties, a burn card, and a cut-card stopping point. Generated shoes are temporary until you export them.</p><div class="actions"><label>Number of shoes <select id="shoe-gen-count"><option value="100">100</option><option value="1000" selected>1,000</option><option value="5000">5,000</option><option value="10000">10,000</option></select></label><button type="button" id="shoe-gen-run" class="player">Generate New Shoes</button><button type="button" id="shoe-gen-save" class="secondary" disabled>Save shoes as CSV</button></div><p id="shoe-gen-status" class="muted">Ready to generate.</p>';
+host.parentNode.insertBefore(panel,host);
+const count=document.getElementById('shoe-gen-count'),run=document.getElementById('shoe-gen-run'),save=document.getElementById('shoe-gen-save'),status=document.getElementById('shoe-gen-status');
+let generated=null;
+function shuffle(){
+ const deck=new Uint8Array(416);let k=0;
+ for(let d=0;d<8;d++)for(let rank=1;rank<=13;rank++)for(let suit=0;suit<4;suit++)deck[k++]=Math.min(rank,10)%10;
+ for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const x=deck[i];deck[i]=deck[j];deck[j]=x}
+ return deck;
+}
+function shoe(){
+ const cards=shuffle();let pos=0;
+ // Standard burn: expose first card, then burn that many additional cards (10 for a zero-value card).
+ const burn=cards[pos++];pos+=burn===0?10:burn;
+ const outcomes=[];
+ // The cut card is placed approximately 14 cards from the end; finish the hand that reaches it.
+ const cut=cards.length-14;
+ while(pos<cut&&pos+6<=cards.length){
+  const p1=cards[pos++],b1=cards[pos++],p2=cards[pos++],b2=cards[pos++];
+  let p=(p1+p2)%10,b=(b1+b2)%10,pt=-1;
+  if(p<8&&b<8){
+   if(p<=5){pt=cards[pos++];p=(p+pt)%10}
+   let draw=false;
+   if(pt<0)draw=b<=5;
+   else if(b<=2)draw=true;
+   else if(b===3)draw=pt!==8;
+   else if(b===4)draw=pt>=2&&pt<=7;
+   else if(b===5)draw=pt>=4&&pt<=7;
+   else if(b===6)draw=pt===6||pt===7;
+   if(draw)b=(b+cards[pos++])%10;
+  }
+  outcomes.push(p>b?'P':b>p?'B':'T');
+ }
+ return outcomes;
+}
+run.addEventListener('click',async()=>{
+ run.disabled=true;save.disabled=true;generated=null;
+ try{
+  const n=Number(count.value),rows=new Map();
+  for(let i=0;i<n;i++){
+   rows.set(i+1,shoe());
+   if(i%100===99){status.textContent='Generating '+(i+1).toLocaleString()+' / '+n.toLocaleString()+' shoes…';await new Promise(resolve=>setTimeout(resolve,0))}
+  }
+  generated=rows;
+  window.dispatchEvent(new CustomEvent('baccarat-simulation-file',{detail:{rows}}));
+  status.textContent='Ready: '+n.toLocaleString()+' new shoes generated. Scroll to Custom Cockroach and tap Test my strategy. These are NEW random shoes, not Wizard of Odds files.';
+  save.disabled=false;
+ }catch(e){status.textContent='Generation failed: '+e.message}
+ finally{run.disabled=false}
+});
+save.addEventListener('click',()=>{
+ if(!generated)return;
+ const lines=['shoe,hand,result'];
+ for(const [number,results] of generated)results.forEach((v,i)=>lines.push(number+','+(i+1)+','+v));
+ const url=URL.createObjectURL(new Blob([lines.join('\\n')],{type:'text/csv'}));
+ const a=document.createElement('a');a.href=url;a.download='generated-baccarat-shoes.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+});
+})();
+</script><script>
+(function(){
  const VERSION='2026-10-30.21';
  const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Check for updates';
  button.style.cssText='font-size:12px;padding:10px;margin:8px 0';
