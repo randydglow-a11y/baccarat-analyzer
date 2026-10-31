@@ -2,7 +2,7 @@
   "name": "Baccarat Analyzer",
   "short_name": "Baccarat",
   "description": "Mobile baccarat roadmaps and session analyzer",
-  "start_url": "./?source=homescreen",
+  "start_url": "./?source=homescreen&app_version=20261031-dashboard-fix",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0b1424",
