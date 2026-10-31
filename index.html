@@ -512,12 +512,26 @@ function setup(){
    const target=locate();
    if(!target){alert('This workspace is not available yet.');return}
    const panel=target.closest('section.panel')||target;
-   // Restore any ancestor visibility before navigating into a nested workspace.
-   for(let ancestor=panel;ancestor&&ancestor!==document.body;ancestor=ancestor.parentElement){ancestor.classList.remove('cc-is-folded');if(ancestor.hidden)ancestor.hidden=false}
-   panel.classList.remove('cc-is-folded');
-   const toggle=panel.querySelector(':scope > .cc-fold-toggle');
-   if(toggle){toggle.setAttribute('aria-expanded','true');toggle.textContent='Hide tools and results  ▴'}
-   requestAnimationFrame(()=>{if(isLive){window.scrollTo({top:0,behavior:'smooth'})}else{panel.scrollIntoView({behavior:'smooth',block:'start'})}});
+   // Reveal the destination and every containing panel, including sections hidden by CSS.
+   for(let ancestor=target;ancestor&&ancestor!==document.body;ancestor=ancestor.parentElement){
+    ancestor.hidden=false;
+    ancestor.classList.remove('cc-is-folded');
+    if(ancestor.style.display==='none')ancestor.style.removeProperty('display');
+    const fold=ancestor.querySelector(':scope > .cc-fold-toggle');
+    if(fold){fold.setAttribute('aria-expanded','true');fold.textContent='Hide tools and results  ▴'}
+   }
+   if(!isLive){
+    document.body.classList.remove('live-play-mode');
+    const sw=document.getElementById('live-mode-switch');if(sw)sw.textContent='Live mode';
+    try{localStorage.setItem('baccarat-live-mode','0')}catch(e){}
+   }
+   // Show immediate feedback so taps never silently fail.
+   const help=nav.querySelector('.cc-nav-help');
+   if(help)help.textContent='Opening '+label.replace(/^\\S+\\s*/,'')+'…';
+   setTimeout(()=>{
+    panel.scrollIntoView({behavior:'auto',block:'start'});
+    if(help)help.textContent='Opened '+label.replace(/^\\S+\\s*/,'')+'.';
+   },60);
   };
   nav.querySelector('.cc-nav-buttons').append(button);
  }
