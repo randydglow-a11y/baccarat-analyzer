@@ -57,6 +57,64 @@ async function run(shoes,modeOverride=null,quiet=false){
  }
  return result;
 }
+
+const validation=document.createElement('section');validation.className='panel';validation.id='cc-validation';
+validation.innerHTML='<h2>🧪 Independent strategy validation</h2><p class="muted">Replays full shoe histories without looking ahead. Independently checks recorded bet side, timing, column, stakes, ties, Banker commission, and totals. This checks internal consistency, not whether the strategy beats the house edge.</p><button id="cc-validate-run" class="secondary" type="button">Validate loaded shoes</button><p id="cc-validate-status" class="muted">Generate or upload shoes first.</p><div id="cc-validate-results" style="overflow-wrap:anywhere"></div>';
+audit.insertAdjacentElement('afterend',validation);
+$('cc-validate-run').onclick=async()=>{
+ const button=$('cc-validate-run'),status=$('cc-validate-status'),output=$('cc-validate-results');
+ if(!dataset){status.textContent='Generate or upload complete shoes first.';return}
+ button.disabled=true;output.replaceChildren();status.textContent='Independently replaying full shoe histories…';
+ await new Promise(resolve=>setTimeout(resolve,20));
+ try{
+ const shoes=Array.from(dataset.values()).slice(0,Number($('cc-count').value)),c=settings(),sim=await run(shoes,null,false);
+ let checked=0,errors=0,unambiguous=0,ambiguous=0,noSignal=0,firstErrors=[],net=0;
+ const report=(message)=>{errors++;if(firstErrors.length<12)firstErrors.push(message)};
+ for(let j=0;j<shoes.length;j++){
+  const original=shoes[j],auditRow=sim.shoeAudits[j],history=[],bets=auditRow.bets;
+  let cursor=0,shoeNet=0,previousBet=null,previousColumn=null,previousStake=null;
+  for(let h=0;h<auditRow.handCount;h++){
+   const actual=original[h],before=road.derived(road.buildBig(history),3),n=before.length;
+   const row=n%c.rows,col=Math.floor(n/c.rows),prior=col>0?before[(col-1)*c.rows+row]:null;
+   const valid=[];
+   if(prior)for(const side of ['B','P']){
+    const after=road.derived(road.buildBig(history.concat(side)),3);
+    if(after.length===n+1&&(c.strategy==='match'?after[n].v===prior.v:after[n].v!==prior.v))valid.push(side);
+   }
+   if(prior){if(valid.length===1)unambiguous++;else if(valid.length===2)ambiguous++;else noSignal++}
+   const bet=bets[cursor];
+   if(bet&&bet.hand===h+1){
+    checked++;cursor++;
+    if(!['B','P','T'].includes(actual))report('Shoe '+(j+1)+' hand '+(h+1)+': invalid outcome');
+    if(bet.outcome!==actual)report('Shoe '+(j+1)+' hand '+(h+1)+': recorded outcome mismatch');
+    if(previousBet!==null){
+     if(bet.bet!==previousBet||bet.stake!==previousStake||bet.column!==previousColumn)report('Shoe '+(j+1)+' hand '+(h+1)+': tie repeat mismatch');
+    }else if(valid.length!==1||bet.bet!==valid[0]||bet.column!==col+1){
+     report('Shoe '+(j+1)+' hand '+(h+1)+': prediction/column not supported by prior history');
+    }
+    const expected=actual==='T'?0:actual===bet.bet?bet.stake*(bet.bet==='B'?0.95:1):-bet.stake;
+    shoeNet+=expected;
+    if(Math.abs(bet.delta-expected)>0.00001||Math.abs(bet.net-shoeNet)>0.00001)report('Shoe '+(j+1)+' hand '+(h+1)+': payout or running total mismatch');
+    if(bet.stake>c.cap)report('Shoe '+(j+1)+' hand '+(h+1)+': stake above cap');
+    if(actual==='T'){previousBet=bet.bet;previousStake=bet.stake;previousColumn=bet.column}
+    else{previousBet=null;previousStake=null;previousColumn=null}
+   }else if(previousBet!==null){report('Shoe '+(j+1)+' hand '+(h+1)+': missing repeated wager after tie')}
+   history.push(actual);
+  }
+  if(cursor!==bets.length)report('Shoe '+(j+1)+': wager outside processed hand range');
+  if(Math.abs(shoeNet-auditRow.net)>0.00001)report('Shoe '+(j+1)+': shoe profit mismatch');
+  net+=shoeNet;
+  if(j%100===99){status.textContent='Validated '+(j+1)+' / '+shoes.length+' shoes…';await new Promise(resolve=>setTimeout(resolve,0))}
+ }
+ if(Math.abs(net-sim.net)>0.0001)report('Overall profit mismatch');
+ status.textContent=errors?'Found '+errors+' validation issue(s).':'Validation passed: no inconsistencies detected in recorded wagers.';
+ const summary=document.createElement('p');summary.className='muted';summary.textContent=shoes.length+' full shoes · '+checked+' recorded bets checked · '+unambiguous+' unique pre-hand signals · '+ambiguous+' ambiguous signals · '+noSignal+' unavailable signals · independently summed net '+net.toFixed(2)+' units.';
+ output.append(summary);
+ if(firstErrors.length){const list=document.createElement('ol');firstErrors.forEach(msg=>{const li=document.createElement('li');li.textContent=msg;list.append(li)});output.append(list)}
+ const note=document.createElement('p');note.className='muted';note.textContent='Important: this validator checks signals against the same road-building implementation as the simulator. It does not independently establish that the Cockroach Road rules are correct, that the original shoes are unbiased, or that the strategy has positive expected value.';output.append(note);
+ }catch(e){status.textContent='Validation error: '+e.message}
+ finally{button.disabled=false}
+};
 $('cc-compare').onclick=async()=>{if(!dataset){$('cc-compare-status').textContent='Generate or upload shoes first.';return}const button=$('cc-compare');button.disabled=true;const shoes=Array.from(dataset.values()).slice(0,Number($('cc-count').value));const status=$('cc-compare-status');$('cc-compare-results').replaceChildren();try{status.textContent='Testing Flat on '+shoes.length.toLocaleString()+' shoes…';await new Promise(r=>setTimeout(r,20));const flat=await run(shoes,'flat',true);status.textContent='Testing Double + 1 on the same shoes…';await new Promise(r=>setTimeout(r,20));const doubled=await run(shoes,'doubleplus',true);const table=document.createElement('table');table.style.cssText='width:100%;min-width:310px;text-align:left';const entries=[['Metric','Flat','Double + 1'],['Profitable shoes',(100*flat.profitableShoes/shoes.length).toFixed(1)+'%',(100*doubled.profitableShoes/shoes.length).toFixed(1)+'%'],['Net units',flat.net.toFixed(2),doubled.net.toFixed(2)],['Average units/shoe',(flat.net/shoes.length).toFixed(2),(doubled.net/shoes.length).toFixed(2)],['Losing shoes',flat.losingShoes,doubled.losingShoes],['Worst shoe',flat.biggestLosingShoe===null?'—':flat.biggestLosingShoe.toFixed(2),doubled.biggestLosingShoe===null?'—':doubled.biggestLosingShoe.toFixed(2)],['Break-even profitable shoes',flat.profitableShoes&&flat.losingShoes?(100*(Math.abs(flat.losingShoeLoss/flat.losingShoes))/(flat.winningShoeProfit/flat.profitableShoes+Math.abs(flat.losingShoeLoss/flat.losingShoes))).toFixed(2)+'%':'—',doubled.profitableShoes&&doubled.losingShoes?(100*(Math.abs(doubled.losingShoeLoss/doubled.losingShoes))/(doubled.winningShoeProfit/doubled.profitableShoes+Math.abs(doubled.losingShoeLoss/doubled.losingShoes))).toFixed(2)+'%':'—']];for(const [i,row] of entries.entries()){const tr=document.createElement('tr');for(const value of row){const cell=document.createElement(i?'td':'th');cell.textContent=value;cell.style.cssText='padding:9px 5px;border-bottom:1px solid #405573;font-size:13px';tr.appendChild(cell)}table.appendChild(tr)}$('cc-compare-results').appendChild(table);status.textContent='Compared '+shoes.length.toLocaleString()+' identical shoes. Positive net units indicate simulated profit; neither result predicts future profitability.'}catch(e){status.textContent='Comparison error: '+e.message}finally{button.disabled=false}};
 $('cc-run').onclick=async()=>{
  if(!dataset)return;$('cc-run').disabled=true;const shoes=Array.from(dataset.values()).slice(0,Number($('cc-count').value));$('cc-status').textContent='Running selected progression…';
