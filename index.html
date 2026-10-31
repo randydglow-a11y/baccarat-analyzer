@@ -371,7 +371,7 @@ save.addEventListener('click',()=>{
 function init(){
  const main=document.querySelector('main');if(!main||document.getElementById('simple-home'))return;
  const home=document.createElement('section');home.className='panel';home.id='simple-home';
- home.innerHTML='<h2>Strategy Center</h2><p class="muted">One question: What could 10 shoes a day look like for my strategy?</p><div class="mode-tabs"><button class="secondary" id="simple-auto" aria-pressed="true">Find Best Setup</button><button class="secondary" id="simple-manual" aria-pressed="false">Test My Setup</button></div><p id="simple-mode-note" class="muted"></p><div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center"><label>Shoes to test <input id="simple-shoes-test" type="number" min="25" max="10000" step="1" value="100"></label><label>Shoes per day <input id="simple-shoes-day" type="number" min="1" max="100" value="10"></label></div><p id="simple-shoes-status" class="muted">Shoes to test controls the simulator sample size; shoes per day controls daily and monthly estimates.</p><div class="simple-grid" style="margin-top:12px"><div class="simple-tile"><small>Daily net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Monthly net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Profitable days</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Bankroll drawdown</small><strong>Not calculated</strong></div></div><p class="muted"><span id="simple-profit-note">Generate or load shoes, then run Test my strategy in Custom Cockroach to populate these figures. Historical road hit rates alone cannot establish profitability.</span></p><div class="actions"><button id="simple-run" class="player" type="button">Run Profit Test</button><button id="simple-open" class="secondary">Open analyzer</button><button id="simple-advanced" class="secondary" aria-expanded="false">Show advanced tools</button></div>';
+ home.innerHTML='<h2>Strategy Center</h2><p class="muted">One question: What could 10 shoes a day look like for my strategy?</p><div class="mode-tabs"><button class="secondary" id="simple-auto" aria-pressed="true">Find Best Setup</button><button class="secondary" id="simple-manual" aria-pressed="false">Test My Setup</button></div><p id="simple-mode-note" class="muted"></p><div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center"><label>Shoes to test <input id="simple-shoes-test" type="number" min="25" max="10000" step="1" value="100"></label><label>Shoes per day <input id="simple-shoes-day" type="number" min="1" max="100" value="10"></label></div><p id="simple-shoes-status" class="muted">Shoes to test controls the simulator sample size; shoes per day controls daily and monthly estimates.</p><div class="simple-grid" style="margin-top:12px"><div class="simple-tile"><small>Daily net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Monthly net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Profitable days</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Bankroll drawdown</small><strong>Not calculated</strong></div></div><div id="simple-consistency" style="margin-top:12px" aria-live="polite"></div><p class="muted"><span id="simple-profit-note">Generate or load shoes, then run Test my strategy in Custom Cockroach to populate these figures. Historical road hit rates alone cannot establish profitability.</span></p><div class="actions"><button id="simple-run" class="player" type="button">Run Profit Test</button><button id="simple-open" class="secondary">Open analyzer</button><button id="simple-advanced" class="secondary" aria-expanded="false">Show advanced tools</button></div>';
  const heading=main.querySelector('h1');heading.insertAdjacentElement('afterend',home);
  const sections=[...main.querySelectorAll(':scope > section.panel')].filter(el=>el!==home);
  const advanced=document.createElement('div');advanced.id='simple-advanced-sections';home.insertAdjacentElement('afterend',advanced);
@@ -395,6 +395,28 @@ window.addEventListener('baccarat-profit-results',function(e){
  const status=document.getElementById('simple-shoes-status');
  if(status){status.textContent='Requested: '+requested.toLocaleString()+' shoes · Actually tested: '+profits.length.toLocaleString()+' shoes'+(profits.length<requested?' · Only '+profits.length.toLocaleString()+' loaded shoes were available.':' · Full requested sample tested.');}
  if(!profits.length)return;
+ const consistency=home.querySelector('#simple-consistency');
+ if(consistency){
+  consistency.replaceChildren();
+  const count=profits.length,groupCount=Math.min(5,Math.floor(count/25));
+  if(groupCount<2){consistency.textContent='Consistency check requires at least 50 tested shoes.'}
+  else{
+   const title=document.createElement('h3');title.textContent='Consistency across '+groupCount+' batches';consistency.append(title);
+   const rows=document.createElement('div');rows.style.cssText='display:grid;gap:7px';
+   let positive=0;
+   for(let i=0;i<groupCount;i++){
+    const start=Math.floor(i*count/groupCount),end=Math.floor((i+1)*count/groupCount),part=profits.slice(start,end);
+    const net=part.reduce((a,b)=>a+b,0),avg=net/part.length;
+    if(net>0)positive++;
+    const line=document.createElement('div');line.style.cssText='display:flex;justify-content:space-between;gap:8px;background:#0d1a2c;border-radius:9px;padding:10px;font-size:13px';
+    const name=document.createElement('span');name.textContent='Batch '+(i+1)+' ('+part.length+' shoes)';
+    const value=document.createElement('strong');value.textContent=(net>=0?'+':'')+net.toFixed(2)+' units ('+(avg>=0?'+':'')+avg.toFixed(2)+'/shoe)';
+    line.append(name,value);rows.append(line);
+   }
+   consistency.append(rows);
+   const summary=document.createElement('p');summary.className='muted';summary.textContent=positive+' of '+groupCount+' consecutive batches ended profitable. Batches are partitions of the SAME test, not independent new simulations. Recovery across shoe boundaries can affect batch totals. These results do not establish a predictive advantage.';consistency.append(summary);
+  }
+ }
  const tiles=home.querySelectorAll('.simple-tile strong');
  function update(){
   const perDay=Math.max(1,Math.min(100,Math.floor(Number(dayInput.value)||10)));
