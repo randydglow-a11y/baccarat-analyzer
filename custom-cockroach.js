@@ -182,6 +182,40 @@ $('cc-opt-run').onclick=async()=>{
  finally{button.disabled=false}
 };
 
+
+const simple=document.createElement('section');simple.className='panel';simple.id='cc-best-simple';
+simple.innerHTML='<h2>🏆 Find My Best Strategy</h2><p class="muted">One tap tests Match and Mismatch, 2–6 rows, flat, conservative, and capped Double + 1 betting. Uses separate training and holdout shoes. Ranks by average holdout net units per shoe, not winning percentage. No strategy is guaranteed to profit.</p><button id="cc-best-go" type="button" class="player">Find my best setup</button><p id="cc-best-status" class="muted">Load at least 1,000 shoes first.</p><div id="cc-best-answer"></div><details><summary>Advanced tools and statistics</summary><p class="muted">The detailed strategy tester, optimizer, comparison and calendar remain available elsewhere on this page.</p></details>';
+optimizer.insertAdjacentElement('beforebegin',simple);
+$('cc-best-go').onclick=async()=>{
+ const button=$('cc-best-go'),status=$('cc-best-status'),out=$('cc-best-answer');
+ if(!dataset||dataset.size<1000){status.textContent='Generate or load at least 1,000 complete shoes first.';return}
+ button.disabled=true;out.replaceChildren();
+ try{
+ const all=Array.from(dataset.values()),n=Math.min(1000,Math.floor(all.length/2)),train=all.slice(0,n),holdout=all.slice(n,2*n);
+ const configs=[];
+ for(const strategy of ['match','mismatch'])for(const rows of [2,3,4,5,6])for(const item of [{mode:'flat',steps:4,name:'Flat'},{mode:'preset_safe',steps:4,name:'Conservative'},{mode:'doubleplus',steps:4,name:'Double + 1'}])configs.push({...item,strategy,rows});
+ const ranked=[];
+ for(let i=0;i<configs.length;i++){
+  const c=configs[i];status.textContent='Searching '+(i+1)+' / '+configs.length+' setups…';
+  const r=await run(train,null,true,{...c,start:1,capMethod:'steps',recovery:false,wins:Infinity});
+  ranked.push({...c,train:r.net/train.length});
+ }
+ ranked.sort((a,b)=>b.train-a.train);
+ const finalists=ranked.slice(0,5),tested=[];
+ for(const c of finalists){
+  status.textContent='Checking finalists on unseen shoes…';
+  const r=await run(holdout,null,true,{...c,start:1,capMethod:'steps',recovery:false,wins:Infinity});
+  tested.push({...c,avg:r.net/holdout.length,rate:100*r.profitableShoes/holdout.length,drawdown:r.drawdown,worst:r.biggestLosingShoe});
+ }
+ tested.sort((a,b)=>b.avg-a.avg);
+ const best=tested[0],heading=document.createElement('h3');heading.textContent=best.avg>0?'Best observed setup (not proven profitable)':'No profitable setup found on holdout';out.append(heading);
+ const summary=document.createElement('p');summary.textContent=best.strategy.toUpperCase()+' · '+best.rows+' rows · '+best.name+' · 1-unit starting stake';out.append(summary);
+ for(const [label,value] of [['Average net / shoe',best.avg.toFixed(3)+' units'],['Profitable shoes',best.rate.toFixed(1)+'%'],['Maximum bankroll drawdown',best.drawdown.toFixed(2)+' units'],['Worst shoe',best.worst===null?'—':best.worst.toFixed(2)+' units']]){const p=document.createElement('p');p.textContent=label+': '+value;out.append(p)}
+ const note=document.createElement('p');note.className='muted';note.textContent='Screened '+configs.length+' setups on '+train.length+' training shoes and checked five finalists on '+holdout.length+' different shoes. Choosing the highest holdout result can still overfit; a fresh untouched sample is needed before trusting any positive result. Betting systems cannot remove the casino house edge.';out.append(note);
+ status.textContent='Completed.';
+ }catch(e){status.textContent='Search error: '+e.message}finally{button.disabled=false}
+};
+
 const calendar=document.createElement('section');calendar.className='panel';calendar.id='cc-calendar';
 calendar.innerHTML='<h2>📅 Daily / Monthly / Yearly Simulator</h2><p class="muted">Randomly resamples complete shoe profits from your last strategy test to explore possible playing schedules. This is a historical bootstrap, not a forecast or a guarantee.</p><div class="actions"><label>Shoes / playing day <input id="cc-cal-shoes" type="number" min="1" max="200" value="10" style="width:80px"></label><label>Playing days / month <input id="cc-cal-days" type="number" min="1" max="31" value="20" style="width:80px"></label><label>$ per unit <input id="cc-cal-unit" type="number" min="0.01" step="0.01" value="5" style="width:80px"></label><label>Starting bankroll (units) <input id="cc-cal-bankroll" type="number" min="0" step="1" value="1000" style="width:100px"></label><label>Simulation runs <select id="cc-cal-runs"><option value="500">500</option><option value="1000" selected>1,000</option><option value="3000">3,000</option></select></label><button id="cc-cal-run" type="button" class="player">Simulate calendar</button></div><p class="muted" id="cc-cal-status">Run Test my strategy first to load per-shoe profit results.</p><div id="cc-cal-results" style="overflow-x:auto"></div>';
 optimizer.insertAdjacentElement('afterend',calendar);
