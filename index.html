@@ -355,4 +355,37 @@ save.addEventListener('click',()=>{
  };
  const target=document.querySelector('main>.actions')||document.querySelector('main');if(target){const holder=document.createElement('div');holder.id='app-update-control';holder.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:8px 0;position:static;clear:both';holder.append(button,label);target.insertAdjacentElement('afterend',holder)}
 })();
+</script><style>
+#simple-home .mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+#simple-home .mode-tabs button[aria-pressed="true"]{background:#2b77d0;outline:2px solid #9bd0ff}
+#simple-home .simple-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#simple-home .simple-tile{background:#0d1a2c;padding:14px;border-radius:12px}
+#simple-home .simple-tile strong{display:block;font-size:21px;margin-top:5px}
+#simple-home input{width:90px;padding:9px;background:#0d1a2c;color:white;border:1px solid #6b829e;border-radius:8px}
+#simple-home .muted{margin:8px 0}
+#simple-home button{min-height:44px}
+#simple-home .mode-tabs button{font-size:14px}
+</style>
+<script>
+(function(){
+function init(){
+ const main=document.querySelector('main');if(!main||document.getElementById('simple-home'))return;
+ const home=document.createElement('section');home.className='panel';home.id='simple-home';
+ home.innerHTML='<h2>Strategy Center</h2><p class="muted">One question: What could 10 shoes a day look like for my strategy?</p><div class="mode-tabs"><button class="secondary" id="simple-auto" aria-pressed="true">Find Best Setup</button><button class="secondary" id="simple-manual" aria-pressed="false">Test My Setup</button></div><p id="simple-mode-note" class="muted"></p><label>Shoes per day <input id="simple-shoes-day" type="number" min="1" max="100" value="10"></label><div class="simple-grid" style="margin-top:12px"><div class="simple-tile"><small>Daily net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Monthly net units</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Profitable days</small><strong>Not calculated</strong></div><div class="simple-tile"><small>Bankroll drawdown</small><strong>Not calculated</strong></div></div><p class="muted">These figures require a bet-by-bet simulator. Historical road hit rates alone cannot establish profitability.</p><div class="actions"><button id="simple-open" class="player">Open analyzer</button><button id="simple-advanced" class="secondary" aria-expanded="false">Show advanced tools</button></div>';
+ const heading=main.querySelector('h1');heading.insertAdjacentElement('afterend',home);
+ const sections=[...main.querySelectorAll(':scope > section.panel')].filter(el=>el!==home);
+ const advanced=document.createElement('div');advanced.id='simple-advanced-sections';home.insertAdjacentElement('afterend',advanced);
+ const keep=/Record a hand|Saved shoes|Session overview|Bead road|Advanced baccarat roadmaps/i;
+ sections.forEach(el=>{const title=el.querySelector('h2')?.textContent||'';if(!keep.test(title))advanced.appendChild(el)});
+ let mode='auto';
+ const auto=document.getElementById('simple-auto'),manual=document.getElementById('simple-manual'),note=document.getElementById('simple-mode-note'),open=document.getElementById('simple-open'),adv=document.getElementById('simple-advanced');
+ function render(){auto.setAttribute('aria-pressed',String(mode==='auto'));manual.setAttribute('aria-pressed',String(mode==='manual'));note.textContent=mode==='auto'?'Compare road and row combinations across saved shoes. Rankings are historical, not predictions.':'Choose match or no-match in the existing analyzer and inspect your own setup.';open.textContent=mode==='auto'?'Open all-shoes rankings':'Open strategy comparison';}
+ function showAdvanced(){advanced.hidden=false;adv.setAttribute('aria-expanded','true');adv.textContent='Hide advanced tools';}
+ auto.onclick=()=>{mode='auto';render()};manual.onclick=()=>{mode='manual';render()};
+ adv.onclick=()=>{if(advanced.hidden){showAdvanced()}else{advanced.hidden=true;adv.setAttribute('aria-expanded','false');adv.textContent='Show advanced tools'}};
+ open.onclick=()=>{showAdvanced();const title=mode==='auto'?'All-Shoes Strategy Analyzer':'Strategy Comparison Dashboard';const section=sections.find(x=>x.querySelector('h2')?.textContent===title);section?.scrollIntoView({behavior:'smooth',block:'start'})};
+ advanced.hidden=true;render();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 </script></body></html>
