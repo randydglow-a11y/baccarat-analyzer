@@ -177,6 +177,84 @@ $('cc-opt-run').onclick=async()=>{
  }catch(e){status.textContent='Optimizer error: '+e.message}
  finally{button.disabled=false}
 };
+
+const calendar=document.createElement('section');calendar.className='panel';calendar.id='cc-calendar';
+calendar.innerHTML='<h2>📅 Daily / Monthly / Yearly Simulator</h2><p class="muted">Randomly resamples complete shoe profits from your last strategy test to explore possible playing schedules. This is a historical bootstrap, not a forecast or a guarantee.</p><div class="actions"><label>Shoes / playing day <input id="cc-cal-shoes" type="number" min="1" max="200" value="10" style="width:80px"></label><label>Playing days / month <input id="cc-cal-days" type="number" min="1" max="31" value="20" style="width:80px"></label><label>$ per unit <input id="cc-cal-unit" type="number" min="0.01" step="0.01" value="5" style="width:80px"></label><label>Starting bankroll (units) <input id="cc-cal-bankroll" type="number" min="0" step="1" value="1000" style="width:100px"></label><label>Simulation runs <select id="cc-cal-runs"><option value="500">500</option><option value="1000" selected>1,000</option><option value="3000">3,000</option></select></label><button id="cc-cal-run" type="button" class="player">Simulate calendar</button></div><p class="muted" id="cc-cal-status">Run Test my strategy first to load per-shoe profit results.</p><div id="cc-cal-results" style="overflow-x:auto"></div>';
+optimizer.insertAdjacentElement('afterend',calendar);
+$('cc-cal-run').onclick=async()=>{
+ const status=$('cc-cal-status'),output=$('cc-cal-results'),button=$('cc-cal-run');
+ if(!auditShoes.length){status.textContent='Run Test my strategy first; the calendar uses those exact shoe profits.';return}
+ const num=(id,min,max)=>Math.min(max,Math.max(min,Number($(id).value)||min));
+ const shoesPerDay=Math.floor(num('cc-cal-shoes',1,200)),daysPerMonth=Math.floor(num('cc-cal-days',1,31)),unit=num('cc-cal-unit',0.01,1000000),bankroll=num('cc-cal-bankroll',0,100000000),runs=Number($('cc-cal-runs').value);
+ const profits=auditShoes.map(x=>x.net),annualDays=daysPerMonth*12;
+ const samples=[],monthly=[],daily=[],drawdowns=[],ruins=[];let losingDays=0,losingMonths=0;
+ button.disabled=true;output.replaceChildren();
+ try{
+  for(let runIndex=0;runIndex<runs;runIndex++){
+   let balance=bankroll,peak=bankroll,maxDD=0,yearProfit=0,ruined=false;
+   for(let m=0;m<12;m++){
+    let monthProfit=0;
+    for(let d=0;d<daysPerMonth;d++){
+     let dayProfit=0;
+     for(let sh=0;sh<shoesPerDay;sh++){
+      if(balance<=0){ruined=true;break}
+      const p=profits[Math.floor(Math.random()*profits.length)];
+      dayProfit+=p;balance+=p;
+      peak=Math.max(peak,balance);maxDD=Math.max(maxDD,peak-balance);
+      if(balance<=0){ruined=true;break}
+     }
+     if(dayProfit<0)losingDays++;
+     if(runIndex===0)daily.push(dayProfit);
+     monthProfit+=dayProfit;
+     if(ruined)break;
+    }
+    if(monthProfit<0)losingMonths++;
+    if(runIndex===0)monthly.push(monthProfit);
+    yearProfit+=monthProfit;
+    if(ruined)break;
+   }
+   samples.push(yearProfit);drawdowns.push(maxDD);ruins.push(ruined);
+   if(runIndex%100===99){status.textContent='Simulating '+(runIndex+1)+' / '+runs+' possible years…';await new Promise(resolve=>setTimeout(resolve,0))}
+  }
+  const sorted=samples.slice().sort((a,b)=>a-b),pct=q=>sorted[Math.floor((sorted.length-1)*q)];
+  const mean=values=>values.reduce((a,b)=>a+b,0)/values.length;
+  const fmt=n=>(n>=0?'+':'')+n.toFixed(2);
+  const values=[
+   ['Average daily profit (first example year)',fmt(mean(daily))+' units'],
+   ['Average monthly profit (first example year)',fmt(mean(monthly))+' units'],
+   ['Average annual profit ('+runs+' runs)',fmt(mean(samples))+' units'],
+   ['Annual profit 10th–90th percentile',fmt(pct(.1))+' to '+fmt(pct(.9))+' units'],
+   ['Annual profit in dollars (average)','{if(!dataset){$('cc-compare-status').textContent='Generate or upload shoes first.';return}const button=$('cc-compare');button.disabled=true;const shoes=Array.from(dataset.values()).slice(0,Number($('cc-count').value));const status=$('cc-compare-status');$('cc-compare-results').replaceChildren();try{status.textContent='Testing Flat on '+shoes.length.toLocaleString()+' shoes…';await new Promise(r=>setTimeout(r,20));const flat=await run(shoes,'flat',true);status.textContent='Testing Double + 1 on the same shoes…';await new Promise(r=>setTimeout(r,20));const doubled=await run(shoes,'doubleplus',true);const table=document.createElement('table');table.style.cssText='width:100%;min-width:310px;text-align:left';const entries=[['Metric','Flat','Double + 1'],['Profitable shoes',(100*flat.profitableShoes/shoes.length).toFixed(1)+'%',(100*doubled.profitableShoes/shoes.length).toFixed(1)+'%'],['Net units',flat.net.toFixed(2),doubled.net.toFixed(2)],['Average units/shoe',(flat.net/shoes.length).toFixed(2),(doubled.net/shoes.length).toFixed(2)],['Losing shoes',flat.losingShoes,doubled.losingShoes],['Worst shoe',flat.biggestLosingShoe===null?'—':flat.biggestLosingShoe.toFixed(2),doubled.biggestLosingShoe===null?'—':doubled.biggestLosingShoe.toFixed(2)],['Break-even profitable shoes',flat.profitableShoes&&flat.losingShoes?(100*(Math.abs(flat.losingShoeLoss/flat.losingShoes))/(flat.winningShoeProfit/flat.profitableShoes+Math.abs(flat.losingShoeLoss/flat.losingShoes))).toFixed(2)+'%':'—',doubled.profitableShoes&&doubled.losingShoes?(100*(Math.abs(doubled.losingShoeLoss/doubled.losingShoes))/(doubled.winningShoeProfit/doubled.profitableShoes+Math.abs(doubled.losingShoeLoss/doubled.losingShoes))).toFixed(2)+'%':'—']];for(const [i,row] of entries.entries()){const tr=document.createElement('tr');for(const value of row){const cell=document.createElement(i?'td':'th');cell.textContent=value;cell.style.cssText='padding:9px 5px;border-bottom:1px solid #405573;font-size:13px';tr.appendChild(cell)}table.appendChild(tr)}$('cc-compare-results').appendChild(table);status.textContent='Compared '+shoes.length.toLocaleString()+' identical shoes. Positive net units indicate simulated profit; neither result predicts future profitability.'}catch(e){status.textContent='Comparison error: '+e.message}finally{button.disabled=false}};
+$('cc-run').onclick=async()=>{
+ if(!dataset)return;$('cc-run').disabled=true;const shoes=Array.from(dataset.values()).slice(0,Number($('cc-count').value));$('cc-status').textContent='Running selected progression…';
+ await new Promise(resolve=>setTimeout(resolve,30));
+ try{
+  const s=await run(shoes);auditShoes=s.shoeAudits;const select=$('cc-audit-select');select.replaceChildren();auditShoes.forEach(a=>{const opt=document.createElement('option');opt.value=String(a.number-1);opt.textContent='Shoe #'+a.number+' ('+(a.net>=0?'+':'')+a.net.toFixed(2)+')';select.appendChild(opt)});renderAudit();$('cc-audit-export').disabled=!auditShoes.length;const rate=s.wins+s.losses?(100*s.wins/(s.wins+s.losses)).toFixed(1)+'%':'—';
+  const pct=shoes.length?(100*s.profitableShoes/shoes.length).toFixed(1)+'%':'—';
+  const values=[['Strategy Profitability %',pct],['Profitable / Losing / Even shoes',s.profitableShoes+' / '+s.losingShoes+' / '+s.evenShoes],['Total net profit',(s.net>=0?'+':'')+s.net.toFixed(2)+' units'],['Average profit per shoe',(s.net/shoes.length>=0?'+':'')+(s.net/shoes.length).toFixed(2)+' units'],['Biggest winning shoe',s.biggestWinningShoe===null?'—':'+'+s.biggestWinningShoe.toFixed(2)+' units'],['Biggest losing shoe',s.biggestLosingShoe===null?'—':s.biggestLosingShoe.toFixed(2)+' units'],['Winning shoes needed to recover one losing shoe',s.profitableShoes&&s.losingShoes?(Math.abs(s.losingShoeLoss/s.losingShoes)/(s.winningShoeProfit/s.profitableShoes)).toFixed(2):'—']];
+  $('cc-stats').replaceChildren();for(const [name,value] of values){const d=document.createElement('div');d.style.cssText='background:#0d1a2c;border-radius:10px;padding:10px';if(name==='Strategy Profitability %'){d.style.cssText+='grid-column:1/-1;text-align:center;border:2px solid #36bf99;padding:22px 12px'}const a=document.createElement('strong');a.style.cssText='display:block;font-size:'+(name==='Strategy Profitability %'?'44px':'20px')+';color:'+(name==='Strategy Profitability %'?'#36bf99':'#f4f7ff');a.textContent=value;const b=document.createElement('span');b.style.cssText='color:#a8b9d2;font-size:12px';b.textContent=name;d.append(a,b);$('cc-stats').append(d)}
+  $('cc-status').textContent='Profitability % means the share of tested shoes finishing with positive net units, not the predicted chance of future profit. Completed '+shoes.length+' simulated shoes. Betting decisions used only earlier hands. Ties excluded from bet win rate. Total columns include the entire original shoe, even if the selected stop rule ends betting early.';
+ }catch(e){$('cc-status').textContent='Error: '+e.message}
+ finally{$('cc-run').disabled=false}
+};
+function renderAudit(){const a=auditShoes[Number($('cc-audit-select').value)];$('cc-audit-body').replaceChildren();if(!a){$('cc-audit-summary').textContent='Run a test to view the breakdown.';return}const wins=a.bets.filter(b=>b.delta>0).length,losses=a.bets.filter(b=>b.delta<0).length,ties=a.bets.filter(b=>b.outcome==='T').length;$('cc-audit-summary').textContent='Shoe #'+a.number+' · '+a.handCount+' hands processed · '+a.columns+' columns played · '+a.wins+' winning columns · '+wins+' wins / '+losses+' losses / '+ties+' ties · Net '+(a.net>=0?'+':'')+a.net.toFixed(2)+' units';for(const b of a.bets){const tr=document.createElement('tr');for(const v of [b.hand,b.column,b.bet,b.stake.toFixed(2),b.outcome,(b.delta>=0?'+':'')+b.delta.toFixed(2),(b.net>=0?'+':'')+b.net.toFixed(2)]){const td=document.createElement('td');td.textContent=v;td.style.padding='8px 5px';tr.appendChild(td)}$('cc-audit-body').appendChild(tr)}}
+$('cc-audit-select').addEventListener('change',renderAudit);
+$('cc-audit-export').addEventListener('click',()=>{const lines=['Shoe,Hand,Column,Bet,Stake,Outcome,Delta units,Shoe running net'];for(const a of auditShoes)for(const b of a.bets)lines.push([a.number,b.hand,b.column,b.bet,b.stake.toFixed(2),b.outcome,b.delta.toFixed(2),b.net.toFixed(2)].join(','));const url=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'})),link=document.createElement('a');link.href=url;link.download='baccarat-shoe-profit-audit.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+})();+(mean(samples)*unit).toFixed(2)],
+   ['Losing days (first example year)',daily.filter(x=>x<0).length+' / '+daily.length],
+   ['Losing months (first example year)',monthly.filter(x=>x<0).length+' / '+monthly.length],
+   ['Years finishing negative',(100*samples.filter(x=>x<0).length/runs).toFixed(1)+'%'],
+   ['Average max bankroll drawdown',mean(drawdowns).toFixed(2)+' units'],
+   ['Bankroll depleted during year',(100*ruins.filter(Boolean).length/runs).toFixed(1)+'%']
+  ];
+  const table=document.createElement('table');table.style.cssText='width:100%;min-width:320px;text-align:left';
+  values.forEach(([label,value])=>{const tr=document.createElement('tr');for(const textValue of [label,value]){const td=document.createElement('td');td.textContent=textValue;td.style.cssText='padding:9px 6px;border-bottom:1px solid #405573;font-size:13px';tr.append(td)}table.append(tr)});
+  output.append(table);
+  const note=document.createElement('p');note.className='muted';note.textContent='Each simulated shoe is sampled with replacement from '+profits.length+' recorded shoe profits. A year is 12 months of '+daysPerMonth+' playing days; each playing day has '+shoesPerDay+' shoes. A simulated bankroll of zero or less stops further play. Example daily/monthly rows are from one randomly sampled year; annual rows summarize all '+runs+' years. Resampling assumes the observed shoe-profit distribution repeats, which may be false. Dollar figures are units multiplied by your chosen $/unit.';output.append(note);
+  status.textContent='Completed '+runs.toLocaleString()+' simulated years using your latest '+profits.length.toLocaleString()+' tested shoes.';
+ }catch(e){status.textContent='Calendar simulation error: '+e.message}
+ finally{button.disabled=false}
+};
 $('cc-compare').onclick=async()=>{if(!dataset){$('cc-compare-status').textContent='Generate or upload shoes first.';return}const button=$('cc-compare');button.disabled=true;const shoes=Array.from(dataset.values()).slice(0,Number($('cc-count').value));const status=$('cc-compare-status');$('cc-compare-results').replaceChildren();try{status.textContent='Testing Flat on '+shoes.length.toLocaleString()+' shoes…';await new Promise(r=>setTimeout(r,20));const flat=await run(shoes,'flat',true);status.textContent='Testing Double + 1 on the same shoes…';await new Promise(r=>setTimeout(r,20));const doubled=await run(shoes,'doubleplus',true);const table=document.createElement('table');table.style.cssText='width:100%;min-width:310px;text-align:left';const entries=[['Metric','Flat','Double + 1'],['Profitable shoes',(100*flat.profitableShoes/shoes.length).toFixed(1)+'%',(100*doubled.profitableShoes/shoes.length).toFixed(1)+'%'],['Net units',flat.net.toFixed(2),doubled.net.toFixed(2)],['Average units/shoe',(flat.net/shoes.length).toFixed(2),(doubled.net/shoes.length).toFixed(2)],['Losing shoes',flat.losingShoes,doubled.losingShoes],['Worst shoe',flat.biggestLosingShoe===null?'—':flat.biggestLosingShoe.toFixed(2),doubled.biggestLosingShoe===null?'—':doubled.biggestLosingShoe.toFixed(2)],['Break-even profitable shoes',flat.profitableShoes&&flat.losingShoes?(100*(Math.abs(flat.losingShoeLoss/flat.losingShoes))/(flat.winningShoeProfit/flat.profitableShoes+Math.abs(flat.losingShoeLoss/flat.losingShoes))).toFixed(2)+'%':'—',doubled.profitableShoes&&doubled.losingShoes?(100*(Math.abs(doubled.losingShoeLoss/doubled.losingShoes))/(doubled.winningShoeProfit/doubled.profitableShoes+Math.abs(doubled.losingShoeLoss/doubled.losingShoes))).toFixed(2)+'%':'—']];for(const [i,row] of entries.entries()){const tr=document.createElement('tr');for(const value of row){const cell=document.createElement(i?'td':'th');cell.textContent=value;cell.style.cssText='padding:9px 5px;border-bottom:1px solid #405573;font-size:13px';tr.appendChild(cell)}table.appendChild(tr)}$('cc-compare-results').appendChild(table);status.textContent='Compared '+shoes.length.toLocaleString()+' identical shoes. Positive net units indicate simulated profit; neither result predicts future profitability.'}catch(e){status.textContent='Comparison error: '+e.message}finally{button.disabled=false}};
 $('cc-run').onclick=async()=>{
  if(!dataset)return;$('cc-run').disabled=true;const shoes=Array.from(dataset.values()).slice(0,Number($('cc-count').value));$('cc-status').textContent='Running selected progression…';
