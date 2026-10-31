@@ -234,11 +234,16 @@ $('cc-stop-run').onclick=async()=>{
    results.push({label:choice.label,net:r.net,avg:r.net/all.length,profitable:100*r.profitableShoes/all.length,worst:r.biggestLosingShoe,drawdown,batches,wagered,resolvedBets,returnPer100:wagered?100*r.net/wagered:null});
    await new Promise(resolve=>setTimeout(resolve,0));
   }
-  const table=document.createElement('table');table.style.cssText='width:100%;min-width:920px;font-size:12px;text-align:left';
-  const add=(items,head)=>{const tr=document.createElement('tr');items.forEach(value=>{const cell=document.createElement(head?'th':'td');cell.textContent=value;cell.style.cssText='padding:8px 7px;border-bottom:1px solid #405573;white-space:nowrap';tr.append(cell)});table.append(tr)};
-  add(['Stop rule','Net units','Total units wagered','Net / 100 wagered','Resolved bets','Units/shoe','Profitable shoes','Worst shoe','Max drawdown','Positive batches'],true);
-  results.forEach(x=>add([x.label,x.net.toFixed(2),x.wagered.toFixed(2),x.returnPer100===null?'—':x.returnPer100.toFixed(2),String(x.resolvedBets),x.avg.toFixed(3),x.profitable.toFixed(1)+'%',x.worst===null?'—':x.worst.toFixed(2),x.drawdown.toFixed(2),x.batches.filter(n=>n>0)+'/5'],false));
-  output.append(table);
+  const fmt=n=>Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const cards=document.createElement('div');cards.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-top:16px';
+  for(const x of results){
+   const card=document.createElement('div');card.style.cssText='padding:14px;border:1px solid #405573;border-radius:14px;min-width:0';
+   const heading=document.createElement('h3');heading.textContent=x.label;heading.style.cssText='margin:0 0 12px;font-size:17px';card.append(heading);
+   const lines=[['Net units',fmt(x.net)],['Total units wagered',fmt(x.wagered)],['Net per 100 wagered',x.returnPer100===null?'—':fmt(x.returnPer100)],['Resolved bets',x.resolvedBets.toLocaleString()],['Units per shoe',x.avg.toFixed(3)],['Profitable shoes',x.profitable.toFixed(1)+'%'],['Worst shoe',x.worst===null?'—':fmt(x.worst)],['Max drawdown',fmt(x.drawdown)],['Positive batches',x.batches.filter(n=>n>0).length+' / 5']];
+   for(const [label,value] of lines){const line=document.createElement('div');line.style.cssText='display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #34465f;font-size:13px';const l=document.createElement('span');l.textContent=label;l.style.opacity='.8';const v=document.createElement('strong');v.textContent=value;v.style.textAlign='right';line.append(l,v);card.append(line)}
+   cards.append(card);
+  }
+  output.append(cards);
   const note=document.createElement('p');note.className='muted';note.textContent='Each row uses the identical '+all.length+' shoes. Five batches follow shoe order. Drawdown is calculated from the cumulative shoe net sequence, not intrashoe bankroll changes. Total units wagered sums stakes on resolved Banker/Player bets; ties are pushes and excluded to avoid inflating turnover. Net / 100 wagered = 100 × net units ÷ total units wagered (negative means loss). These are in-sample comparisons; a favorable result should be retested on fresh shoes.';output.append(note);
   status.textContent='Finished four stopping-rule comparisons. Lower drawdown means less simulated peak-to-trough loss.';
  }catch(e){status.textContent='Stopping-rule comparison error: '+e.message}
