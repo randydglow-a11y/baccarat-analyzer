@@ -503,10 +503,11 @@ function setup(){
   button.onclick=()=>{
    if(isLive){
     if(!document.body.classList.contains('live-play-mode'))document.getElementById('live-mode-switch')?.click();
+    if(!document.body.classList.contains('live-play-mode')){document.body.classList.add('live-play-mode');try{localStorage.setItem('baccarat-live-mode','1')}catch(e){}}
    }else if(document.body.classList.contains('live-play-mode')){
     document.getElementById('live-mode-switch')?.click();
     document.body.classList.remove('live-play-mode');
-    try{localStorage.setItem('baccarat-live-mode','false')}catch(e){}
+    try{localStorage.setItem('baccarat-live-mode','0')}catch(e){}
    }
    const target=locate();
    if(!target){alert('This workspace is not available yet.');return}
@@ -514,7 +515,7 @@ function setup(){
    panel.classList.remove('cc-is-folded');
    const toggle=panel.querySelector(':scope > .cc-fold-toggle');
    if(toggle){toggle.setAttribute('aria-expanded','true');toggle.textContent='Hide tools and results  ▴'}
-   requestAnimationFrame(()=>panel.scrollIntoView({behavior:'smooth',block:'start'}));
+   requestAnimationFrame(()=>{if(isLive){window.scrollTo({top:0,behavior:'smooth'})}else{panel.scrollIntoView({behavior:'smooth',block:'start'})}});
   };
   nav.querySelector('.cc-nav-buttons').append(button);
  }
