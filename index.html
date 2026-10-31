@@ -641,13 +641,21 @@ function initLive(){
  $('live-new-day').onclick=()=>{if(confirm('Start a new day? This resets the live wager totals, but keeps your recorded road history.')){entries=[];save()}};
  for(const [id,key] of [['live-start','start'],['live-stake','stake'],['live-goal','goal'],['live-limit','limit']])$(id).addEventListener('change',()=>{try{localStorage.setItem('baccarat-live-'+key,$(id).value)}catch(e){}refresh()});
  function setLive(enabled){document.body.classList.toggle('live-play-mode',enabled);switcher.textContent=enabled?'Exit live':'Live mode';try{localStorage.setItem('baccarat-live-mode',enabled?'1':'0')}catch(e){}refresh();if(enabled)window.scrollTo({top:0,behavior:'instant'})}
- switcher.onclick=()=>setLive(!document.body.classList.contains('live-play-mode'));$('live-exit').onclick=()=>setLive(false);
+ switcher.onclick=()=>setLive(!document.body.classList.contains('live-play-mode'));
+ // Ensure the dashboard can be recovered even if another initializer fails.
+ window.showBaccaratDashboard=()=>{document.body.classList.remove('live-play-mode','compact-gameplay','roads-focus');try{localStorage.setItem('baccarat-live-mode','0');localStorage.setItem('baccarat-compact-gameplay-v1','0')}catch(e){}switcher.textContent='Live mode';document.querySelector('.dashboard-nav')?.scrollIntoView({block:'start'});};$('live-exit').onclick=()=>setLive(false);
  // Start with workspace navigation visible; Live mode remains available by button.
  try{localStorage.setItem('baccarat-live-mode','0')}catch(e){}
  setLive(false);
  document.addEventListener('click',e=>{if(e.target.closest('#mobile-entry-bar,#dashboard-controls'))setTimeout(refresh,0)});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initLive);else initLive();
+})();
+</script>
+<script>
+(function(){
+ function recover(){document.body.classList.remove('live-play-mode','compact-gameplay','roads-focus');try{localStorage.setItem('baccarat-live-mode','0');localStorage.setItem('baccarat-compact-gameplay-v1','0')}catch(e){}const b=document.getElementById('live-mode-switch');if(b)b.textContent='Live mode';}
+ const button=document.createElement('button');button.type='button';button.id='dashboard-rescue';button.textContent='☰ Quick Dashboard';button.style.cssText='position:fixed;top:env(safe-area-inset-top, 0px);left:8px;z-index:2147483647;background:#176c88;color:white;padding:10px 12px;border-radius:10px;border:2px solid white;font-size:13px';button.onclick=()=>{recover();document.querySelector('.dashboard-nav')?.scrollIntoView({block:'start'});};document.body.append(button);
 })();
 </script>
 </body></html>
