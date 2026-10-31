@@ -56,7 +56,7 @@ async function run(shoes,modeOverride=null,quiet=false,configOverrides=null){
   result.playedColumns+=shoePlayed.size;
   result.winningColumns+=shoeWon.size;
   result.losingColumns+=shoePlayed.size-shoeWon.size;
-  if(config.recovery&&!recoveryShoe&&shoeGrossLoss>=shoeLossCap-0.0000001)recoveryNextShoe=true;const shoeNet=result.net-shoeStartNet;if(config.capMethod==='steps'&&shoeNet < -shoeLossCap-0.000001)throw Error('Shoe loss cap violation on shoe '+(j+1));if(!quiet)result.shoeAudits.push({number:j+1,net:shoeNet,bets:betsAudit,columns:shoePlayed.size,wins:shoeWon.size,handCount:handNumber});
+  if(config.recovery&&!recoveryShoe&&shoeGrossLoss>=shoeLossCap-0.0000001)recoveryNextShoe=true;const shoeNet=result.net-shoeStartNet;if(config.capMethod==='steps'&&shoeNet < -shoeLossCap-0.000001)throw Error('Shoe loss cap violation on shoe '+(j+1));if(!quiet)result.shoeAudits.push({number:j+1,net:shoeNet,bets:betsAudit,columns:shoePlayed.size,wins:shoeWon.size,handCount:handNumber,recoveryShoe,queuedRecovery:recoveryNextShoe,shoeGrossLoss,shoeLossCap});
   if(shoeNet>0.0000001){result.profitableShoes++;result.winningShoeProfit+=shoeNet;result.biggestWinningShoe=Math.max(result.biggestWinningShoe===null?-Infinity:result.biggestWinningShoe,shoeNet)}else if(shoeNet< -0.0000001){result.losingShoes++;result.losingShoeLoss+=shoeNet;result.biggestLosingShoe=Math.min(result.biggestLosingShoe===null?Infinity:result.biggestLosingShoe,shoeNet)}else result.evenShoes++;
   if(j%5===4){if(!quiet)$('cc-status').textContent='Testing shoe '+(j+1)+' / '+shoes.length+'…';await new Promise(resolve=>setTimeout(resolve,0))}
  }
@@ -136,7 +136,7 @@ $('cc-recovery-run').onclick=async()=>{
   const errors=[];let tieCount=0,checked=0,recoveryShoes=0,expectRecovery=false;
   const eq=(a,b)=>Math.abs(a-b)<0.00001;
   for(const audit of sim.shoeAudits){
-   const isRecovery=expectRecovery; if(isRecovery)recoveryShoes++;
+   const isRecovery=audit.recoveryShoe; if(isRecovery!==expectRecovery)errors.push('Shoe '+audit.number+': recovery transition mismatch (expected '+expectRecovery+', actual '+isRecovery+')'); if(isRecovery)recoveryShoes++;
    expectRecovery=false;let lossSum=0,running=0,priorTie=null,prevCol=null,losses=0,stake=isRecovery?base.start*base.recoveryMult:base.start,prevStake=0,stoppedColumn=null;
    const limit=isRecovery?boosted.total:normal.total;
    for(const bet of audit.bets){
@@ -158,9 +158,10 @@ $('cc-recovery-run').onclick=async()=>{
     if(lossSum>limit+0.00001)errors.push('Shoe '+audit.number+': shoe loss cap exceeded');
    }
    if(!eq(running,audit.net))errors.push('Shoe '+audit.number+': shoe net mismatch');
-   // A shoe may trigger recovery when its next bet would exceed the loss cap.
+   // Recovery is queued only by a completed four-loss progression or the loss cap.
+   // Do not clear a newly queued recovery after inspecting a recovery shoe.
    if(!isRecovery&&lossSum>=limit-0.00001)expectRecovery=true;
-   if(isRecovery)expectRecovery=false;
+   if(audit.queuedRecovery!==expectRecovery)errors.push('Shoe '+audit.number+': queued recovery transition mismatch');
   }
   status.textContent=errors.length?'Found '+errors.length+' potential issue(s): '+errors.slice(0,5).join('; '):'Checks passed on '+shoes.length+' shoes, '+checked+' wagers, '+tieCount+' ties and '+recoveryShoes+' recovery shoes. This confirms internal wager arithmetic and checked limits, not an advantage over the casino.';
  }catch(e){status.textContent='Recovery check error: '+e.message}
