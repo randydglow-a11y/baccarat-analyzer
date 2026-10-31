@@ -121,6 +121,51 @@ $('cc-validate-run').onclick=async()=>{
  finally{button.disabled=false}
 };
 
+// Additional independent accounting and recovery-boundary regression checks.
+const recoveryCheck=document.createElement('section');recoveryCheck.className='panel';recoveryCheck.id='cc-recovery-check';
+recoveryCheck.innerHTML='<h2>🔍 Recovery & progression checks</h2><p class="muted">Checks wager arithmetic, ties, progression limits, and shoe-to-shoe recovery on loaded shoes. Uses the same road signal engine, so this is not proof of predictive accuracy.</p><button type="button" class="secondary" id="cc-recovery-run">Check recovery rules</button><p class="muted" id="cc-recovery-status">Load shoes to begin.</p>';
+validation.insertAdjacentElement('afterend',recoveryCheck);
+$('cc-recovery-run').onclick=async()=>{
+ const button=$('cc-recovery-run'),status=$('cc-recovery-status');
+ if(!dataset){status.textContent='Generate or upload shoes first.';return}
+ button.disabled=true;status.textContent='Checking progression and recovery boundaries…';
+ try{
+  const shoes=Array.from(dataset.values()).slice(0,Math.min(1000,dataset.size));
+  const base={...settings(),capMethod:'steps',steps:4,start:1,mode:'doubleplus',wins:Infinity,recovery:true,recoveryMult:5};
+  const sim=await run(shoes,null,false,base),normal=progression(base),boosted=recoveryProgression(base);
+  const errors=[];let tieCount=0,checked=0,recoveryShoes=0,expectRecovery=false;
+  const eq=(a,b)=>Math.abs(a-b)<0.00001;
+  for(const audit of sim.shoeAudits){
+   const isRecovery=expectRecovery; if(isRecovery)recoveryShoes++;
+   expectRecovery=false;let lossSum=0,running=0,priorTie=null,prevCol=null,losses=0,stake=isRecovery?base.start*base.recoveryMult:base.start,prevStake=0,stoppedColumn=null;
+   const limit=isRecovery?boosted.total:normal.total;
+   for(const bet of audit.bets){
+    checked++;
+    if(stoppedColumn!==null&&bet.column===stoppedColumn)errors.push('Shoe '+audit.number+': bet after column stop');
+    if(priorTie&&(bet.hand!==priorTie.hand+1||bet.bet!==priorTie.bet||bet.column!==priorTie.column||!eq(bet.stake,priorTie.stake)))errors.push('Shoe '+audit.number+': tie repeat incorrect');
+    if(!priorTie&&bet.column!==prevCol){prevCol=bet.column;losses=0;stake=isRecovery?base.start*base.recoveryMult:base.start;prevStake=0;stoppedColumn=null}
+    if(!eq(bet.stake,stake))errors.push('Shoe '+audit.number+' hand '+bet.hand+': progression stake incorrect');
+    if(losses>=base.steps)errors.push('Shoe '+audit.number+': progression exceeds four losses');
+    const delta=bet.outcome==='T'?0:bet.outcome===bet.bet?bet.stake*(bet.bet==='B'?0.95:1):-bet.stake;
+    running+=delta;
+    if(!eq(delta,bet.delta)||!eq(running,bet.net))errors.push('Shoe '+audit.number+' hand '+bet.hand+': wager accounting incorrect');
+    if(bet.outcome==='T'){tieCount++;priorTie=bet}
+    else{
+     priorTie=null;
+     if(delta<0){lossSum+=bet.stake;const next=nextStake(stake,prevStake,{...base});prevStake=stake;stake=next;losses++;if(losses>=base.steps){stoppedColumn=bet.column;if(!isRecovery)expectRecovery=true}}
+     else{stoppedColumn=bet.column;stake=isRecovery?base.start*base.recoveryMult:base.start;prevStake=0}
+    }
+    if(lossSum>limit+0.00001)errors.push('Shoe '+audit.number+': shoe loss cap exceeded');
+   }
+   if(!eq(running,audit.net))errors.push('Shoe '+audit.number+': shoe net mismatch');
+   // A shoe may trigger recovery when its next bet would exceed the loss cap.
+   if(!isRecovery&&lossSum>=limit-0.00001)expectRecovery=true;
+   if(isRecovery)expectRecovery=false;
+  }
+  status.textContent=errors.length?'Found '+errors.length+' potential issue(s): '+errors.slice(0,5).join('; '):'Checks passed on '+shoes.length+' shoes, '+checked+' wagers, '+tieCount+' ties and '+recoveryShoes+' recovery shoes. This confirms internal wager arithmetic and checked limits, not an advantage over the casino.';
+ }catch(e){status.textContent='Recovery check error: '+e.message}
+ finally{button.disabled=false}
+};
 const optimizer=document.createElement('section');optimizer.className='panel';optimizer.id='cc-optimizer';
 optimizer.innerHTML='<h2>📊 Strategy Optimizer</h2><p class="muted">Compare betting progressions on identical training shoes, then evaluate the best candidates on separate holdout shoes. Keeps your selected Match/Mismatch strategy and row count. Uses one winning column per shoe. Training results are not evidence of a guaranteed advantage.</p><div class="actions"><label>Training shoes <select id="cc-opt-train"><option value="250">250</option><option value="500" selected>500</option><option value="1000">1,000</option><option value="2000">2,000</option></select></label><label>Holdout shoes <select id="cc-opt-test"><option value="250">250</option><option value="500" selected>500</option><option value="1000">1,000</option><option value="2000">2,000</option></select></label><button type="button" class="player" id="cc-opt-run">Compare setups</button></div><p class="muted" id="cc-opt-status">Generate or upload shoes to start. Requires enough shoes for both groups.</p><div id="cc-opt-results" style="overflow-x:auto"></div>';
 validation.insertAdjacentElement('afterend',optimizer);
