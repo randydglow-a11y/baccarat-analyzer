@@ -186,15 +186,15 @@ $('cc-opt-run').onclick=async()=>{
 
 let bestSetupForVerification=null;
 const simple=document.createElement('section');simple.className='panel';simple.id='cc-best-simple';
-simple.innerHTML='<h2>🏆 Find My Best Strategy</h2><p class="muted">Compare four baccarat roads across three training batches, then check finalists on separate shoes. Ranks by average net units per shoe and shows batch consistency. No strategy is guaranteed to profit.</p><label>Roads to test <select id="cc-best-road"><option value="all">All four roads</option><option value="big">Big Road</option><option value="eye">Big Eye Boy</option><option value="small">Small Road</option><option value="cockroach">Cockroach Road</option></select></label><button id="cc-best-go" type="button" class="player">Find my best setup</button><p id="cc-best-status" class="muted">Load at least 1,000 shoes first.</p><div id="cc-best-answer"></div><button id="cc-verify-go" type="button" class="player" disabled>Verify My Best Strategy (5,000 unused shoes)</button><p id="cc-verify-status" class="muted">Find your best setup first, then verify it on 5,000 shoes not used by the optimizer.</p><div id="cc-verify-answer"></div><details><summary>Advanced tools and statistics</summary><p class="muted">The detailed strategy tester, optimizer, comparison and calendar remain available elsewhere on this page.</p></details>';
+simple.innerHTML='<h2>🏆 Find My Best Strategy</h2><p class="muted">Compare four baccarat roads across three training batches, then check finalists on separate shoes. Ranks by average net units per shoe and shows batch consistency. No strategy is guaranteed to profit.</p><label>Roads to test <select id="cc-best-road"><option value="all">All four roads</option><option value="big">Big Road</option><option value="eye">Big Eye Boy</option><option value="small">Small Road</option><option value="cockroach">Cockroach Road</option></select></label><label>Shoes to test <input id="cc-best-count" type="number" min="1000" max="100000" step="1000" value="10000" style="width:110px"></label><button id="cc-best-go" type="button" class="player">Find my best setup</button><p id="cc-best-status" class="muted">Choose a shoe count and load at least that many shoes.</p><div id="cc-best-answer"></div><button id="cc-verify-go" type="button" class="player" disabled>Verify My Best Strategy</button><p id="cc-verify-status" class="muted">Find your best setup first, then verify it on reserved shoes not used by the optimizer.</p><div id="cc-verify-answer"></div><details><summary>Advanced tools and statistics</summary><p class="muted">The detailed strategy tester, optimizer, comparison and calendar remain available elsewhere on this page.</p></details>';
 optimizer.insertAdjacentElement('beforebegin',simple);
 $('cc-best-go').onclick=async()=>{
  const button=$('cc-best-go'),status=$('cc-best-status'),out=$('cc-best-answer');
- if(!dataset||dataset.size<1000){status.textContent='Generate or load at least 1,000 complete shoes first.';return}
+ const requested=Math.floor(Number($('cc-best-count').value));if(!Number.isFinite(requested)||requested<1000||requested>100000){status.textContent='Choose between 1,000 and 100,000 shoes.';return}if(!dataset||dataset.size<requested){status.textContent='Load at least '+requested.toLocaleString()+' shoes first (currently '+(dataset?dataset.size:0)+').';return}
  button.disabled=true;out.replaceChildren();bestSetupForVerification=null;$('cc-verify-go').disabled=true;$('cc-verify-answer').replaceChildren();
  try{
- const all=Array.from(dataset.values()),batchSize=250,train=all.slice(0,750),holdout=all.slice(750,1750),roadSelection=$('cc-best-road').value,roads=roadSelection==='all'?['big','eye','small','cockroach']:[roadSelection];
- if(all.length<1750){status.textContent='Load at least 1,750 shoes.';return}
+ const all=Array.from(dataset.values()).slice(0,requested),batchSize=Math.floor(requested*0.3/3),trainCount=batchSize*3,holdoutCount=Math.floor(requested*0.2),train=all.slice(0,trainCount),holdout=all.slice(trainCount,trainCount+holdoutCount),verifyOffset=trainCount+holdoutCount,verifyCount=requested-verifyOffset,roadSelection=$('cc-best-road').value,roads=roadSelection==='all'?['big','eye','small','cockroach']:[roadSelection];
+ if(batchSize<50||verifyCount<100){status.textContent='Choose more shoes for meaningful sample sizes.';return}
  const configs=[];
  for(const roadType of roads)for(const strategy of ['match','mismatch'])for(const rows of [2,3,4,5,6])for(const item of [{mode:'flat',steps:4,name:'Flat'},{mode:'preset_safe',steps:4,name:'Conservative'},{mode:'doubleplus',steps:4,name:'Double + 1'}])configs.push({...item,roadType,strategy,rows});
  const ranked=[];
@@ -211,10 +211,10 @@ $('cc-best-go').onclick=async()=>{
   tested.push({...c,avg:r.net/holdout.length,rate:100*r.profitableShoes/holdout.length,drawdown:r.drawdown,worst:r.biggestLosingShoe});
  }
  tested.sort((a,b)=>b.avg-a.avg);
- const best=tested[0];bestSetupForVerification={...best,source:dataset,offset:1750};$('cc-verify-go').disabled=dataset.size<6750;$('cc-verify-status').textContent=dataset.size>=6750?'Ready to verify on 5,000 separate shoes.':'Need at least 6,750 shoes loaded to verify.';const heading=document.createElement('h3');heading.textContent=best.avg>0?'Best observed setup (not proven profitable)':'No profitable setup found on holdout';out.append(heading);
+ const best=tested[0];bestSetupForVerification={...best,source:dataset,offset:verifyOffset,count:verifyCount};$('cc-verify-go').disabled=false;$('cc-verify-go').textContent='Verify My Best Strategy ('+verifyCount.toLocaleString()+' unused shoes)';$('cc-verify-status').textContent='Ready to verify on '+verifyCount.toLocaleString()+' separate shoes.';const heading=document.createElement('h3');heading.textContent=best.avg>0?'Best observed setup (not proven profitable)':'No profitable setup found on holdout';out.append(heading);
  const summary=document.createElement('p');summary.textContent=({big:'Big Road',eye:'Big Eye Boy',small:'Small Road',cockroach:'Cockroach Road'}[best.roadType])+' · '+best.strategy.toUpperCase()+' · '+best.rows+' rows · '+best.name+' · 1-unit starting stake';out.append(summary);
  for(const [label,value] of [['Positive training batches',best.positiveBatches+' / 3'],['Average net / shoe',best.avg.toFixed(3)+' units'],['Profitable shoes',best.rate.toFixed(1)+'%'],['Maximum bankroll drawdown',best.drawdown.toFixed(2)+' units'],['Worst shoe',best.worst===null?'—':best.worst.toFixed(2)+' units']]){const p=document.createElement('p');p.textContent=label+': '+value;out.append(p)}
- const note=document.createElement('p');note.className='muted';note.textContent='Screened '+configs.length+' setups in three independent 250-shoe training batches and checked five finalists on '+holdout.length+' different shoes. Choosing the highest holdout result can still overfit; a fresh untouched sample is needed before trusting any positive result. Betting systems cannot remove the casino house edge.';out.append(note);
+ const note=document.createElement('p');note.className='muted';note.textContent='Screened '+configs.length+' setups in three separate '+batchSize+'-shoe training batches and checked five finalists on '+holdout.length+' different shoes. Choosing the highest holdout result can still overfit; a fresh untouched sample is needed before trusting any positive result. Betting systems cannot remove the casino house edge.';out.append(note);
  status.textContent='Completed.';
  }catch(e){status.textContent='Search error: '+e.message}finally{button.disabled=false}
 };
@@ -222,15 +222,15 @@ $('cc-best-go').onclick=async()=>{
 $('cc-verify-go').onclick=async()=>{
  const status=$('cc-verify-status'),out=$('cc-verify-answer'),button=$('cc-verify-go'),chosen=bestSetupForVerification;
  if(!chosen||chosen.source!==dataset){status.textContent='Find your best setup again on the current dataset first.';return}
- const shoes=Array.from(dataset.values()).slice(chosen.offset,chosen.offset+5000);
- if(shoes.length!==5000){status.textContent='Need 5,000 shoes beyond the optimizer training and finalist samples.';return}
- button.disabled=true;out.replaceChildren();status.textContent='Verifying '+chosen.strategy+' / '+chosen.rows+' rows / '+chosen.name+' on 5,000 untouched-by-optimizer shoes…';
+ const shoes=Array.from(dataset.values()).slice(chosen.offset,chosen.offset+chosen.count);
+ if(shoes.length!==chosen.count){status.textContent='The selected verification shoes are unavailable.';return}
+ button.disabled=true;out.replaceChildren();status.textContent='Verifying '+chosen.strategy+' / '+chosen.rows+' rows / '+chosen.name+' on '+chosen.count.toLocaleString()+' untouched-by-optimizer shoes…';
  try{
  const r=await run(shoes,null,true,{roadType:chosen.roadType,strategy:chosen.strategy,rows:chosen.rows,mode:chosen.mode,steps:4,start:1,capMethod:'steps',recovery:false,wins:Infinity});
  const avg=r.net/shoes.length,heading=document.createElement('h3');heading.textContent=avg>0?'Positive on verification sample — not proof of an edge':'Not profitable on verification sample';out.append(heading);
  for(const [label,value] of [['Setup',chosen.roadType+' · '+chosen.strategy.toUpperCase()+' · '+chosen.rows+' rows · '+chosen.name],['Average net per shoe',avg.toFixed(3)+' units'],['Total net',r.net.toFixed(2)+' units'],['Profitable shoes',(100*r.profitableShoes/shoes.length).toFixed(1)+'%'],['Maximum drawdown',r.drawdown.toFixed(2)+' units'],['Worst shoe',r.biggestLosingShoe===null?'—':r.biggestLosingShoe.toFixed(2)+' units']]){const p=document.createElement('p');p.textContent=label+': '+value;out.append(p)}
- const note=document.createElement('p');note.className='muted';note.textContent='Used shoes '+(chosen.offset+1)+'–'+(chosen.offset+5000)+' from the loaded dataset, separate from optimizer training and finalist selection. These are not newly generated shoes. A positive result does not establish a real-world betting edge, and reuse of previously inspected data weakens independence.';out.append(note);
- status.textContent='Verification completed on 5,000 separate shoes.';
+ const note=document.createElement('p');note.className='muted';note.textContent='Used shoes '+(chosen.offset+1)+'–'+(chosen.offset+chosen.count)+' from the loaded dataset, separate from optimizer training and finalist selection. These are not newly generated shoes. A positive result does not establish a real-world betting edge, and reuse of previously inspected data weakens independence.';out.append(note);
+ status.textContent='Verification completed on '+chosen.count.toLocaleString()+' separate shoes.';
  }catch(e){status.textContent='Verification error: '+e.message}finally{button.disabled=false}
 };
 
