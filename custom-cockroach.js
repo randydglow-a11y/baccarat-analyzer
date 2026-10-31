@@ -25,8 +25,8 @@ function settings(){return {strategy:$('cc-strategy').value,rows:Number($('cc-ro
 function nextStake(current,previous,config){const presets={preset_safe:[1,1,2,2,3,3],preset_fib:[1,2,3,5,8,13],preset_double:[1,2,4,8,16,32]};if(presets[config.mode]){const sequence=presets[config.mode];const index=Math.max(0,Math.min(sequence.length-1,Number(config.presetStep)||0));config.presetStep=index+1;return sequence[Math.min(index+1,sequence.length-1)]}switch(config.mode){case 'flat':return config.start;case 'add':return current+config.add;case 'double':return current*2;case 'doubleplus':return current*2+1;case 'triple':return current*3;case 'fibonacci':return current+previous;default:return current*config.mult+config.add}}
 function preview(){const c=settings();c.presetStep=0;let current=c.mode.startsWith('preset_')?1:c.start,previous=0,seq=[];for(let i=0;i<6;i++){seq.push(Number(current.toFixed(2)));const next=nextStake(current,previous,c);previous=current;current=next} $('cc-preview').textContent='Stake sequence: '+seq.join(' → ')+' units'}
 for(const id of ['cc-strategy','cc-rows','cc-mode','cc-start','cc-add','cc-mult','cc-cap','cc-wins'])$(id).addEventListener('change',preview);preview();
-async function run(shoes,modeOverride=null,quiet=false){
- const config=settings();if(modeOverride)config.mode=modeOverride;config.presetStep=0;const result={bets:0,wins:0,losses:0,pushes:0,net:0,peak:0,drawdown:0,stakeMax:0,maxLossRun:0,lossRun:0,completed:0,exhausted:0,capStops:0,twoWinShoes:0,profitableShoes:0,losingShoes:0,evenShoes:0,totalColumns:0,playedColumns:0,winningColumns:0,losingColumns:0,shoesWithHit:0,shoesWithoutHit:0,winningShoeProfit:0,losingShoeLoss:0,biggestWinningShoe:null,biggestLosingShoe:null,shoeAudits:[]};
+async function run(shoes,modeOverride=null,quiet=false,configOverrides=null){
+ const config={...settings(),...(configOverrides||{})};if(modeOverride)config.mode=modeOverride;config.presetStep=0;const result={bets:0,wins:0,losses:0,pushes:0,net:0,peak:0,drawdown:0,stakeMax:0,maxLossRun:0,lossRun:0,completed:0,exhausted:0,capStops:0,twoWinShoes:0,profitableShoes:0,losingShoes:0,evenShoes:0,totalColumns:0,playedColumns:0,winningColumns:0,losingColumns:0,shoesWithHit:0,shoesWithoutHit:0,winningShoeProfit:0,losingShoeLoss:0,biggestWinningShoe:null,biggestLosingShoe:null,shoeAudits:[]};
  for(let j=0;j<shoes.length;j++){
   const shoeStartNet=result.net;
   const shoePlayed=new Set(),shoeWon=new Set(),betsAudit=[];let shoeRunning=0,handNumber=0;
@@ -113,6 +113,68 @@ $('cc-validate-run').onclick=async()=>{
  if(firstErrors.length){const list=document.createElement('ol');firstErrors.forEach(msg=>{const li=document.createElement('li');li.textContent=msg;list.append(li)});output.append(list)}
  const note=document.createElement('p');note.className='muted';note.textContent='Important: this validator checks signals against the same road-building implementation as the simulator. It does not independently establish that the Cockroach Road rules are correct, that the original shoes are unbiased, or that the strategy has positive expected value.';output.append(note);
  }catch(e){status.textContent='Validation error: '+e.message}
+ finally{button.disabled=false}
+};
+
+const optimizer=document.createElement('section');optimizer.className='panel';optimizer.id='cc-optimizer';
+optimizer.innerHTML='<h2>📊 Strategy Optimizer</h2><p class="muted">Compare betting progressions on identical training shoes, then evaluate the best candidates on separate holdout shoes. Keeps your selected Match/Mismatch strategy and row count. Uses one winning column per shoe. Training results are not evidence of a guaranteed advantage.</p><div class="actions"><label>Training shoes <select id="cc-opt-train"><option value="250">250</option><option value="500" selected>500</option><option value="1000">1,000</option><option value="2000">2,000</option></select></label><label>Holdout shoes <select id="cc-opt-test"><option value="250">250</option><option value="500" selected>500</option><option value="1000">1,000</option><option value="2000">2,000</option></select></label><button type="button" class="player" id="cc-opt-run">Compare setups</button></div><p class="muted" id="cc-opt-status">Generate or upload shoes to start. Requires enough shoes for both groups.</p><div id="cc-opt-results" style="overflow-x:auto"></div>';
+validation.insertAdjacentElement('afterend',optimizer);
+$('cc-opt-run').onclick=async()=>{
+ const button=$('cc-opt-run'),status=$('cc-opt-status'),output=$('cc-opt-results');
+ if(!dataset){status.textContent='Generate or upload shoes first.';return}
+ const trainCount=Number($('cc-opt-train').value),testCount=Number($('cc-opt-test').value);
+ const all=Array.from(dataset.values());
+ if(all.length<trainCount+testCount){status.textContent='Need at least '+(trainCount+testCount)+' loaded shoes; currently '+all.length+'.';return}
+ const train=all.slice(0,trainCount),test=all.slice(trainCount,trainCount+testCount);
+ const candidates=[
+  ['Double + 1 · 5 / 16','doubleplus',5,16],
+  ['Double + 1 · 1 / 16','doubleplus',1,16],
+  ['Double + 1 · 2 / 16','doubleplus',2,16],
+  ['Double + 1 · 1 / 64','doubleplus',1,64],
+  ['Double + 1 · 2 / 64','doubleplus',2,64],
+  ['Double + 1 · 5 / 64','doubleplus',5,64],
+  ['Flat · 1 / 16','flat',1,16],
+  ['Flat · 5 / 16','flat',5,16],
+  ['Conservative · 1 / 16','preset_safe',1,16],
+  ['Fibonacci-style · 1 / 16','preset_fib',1,16],
+  ['Doubling · 1 / 16','preset_double',1,16],
+  ['Fibonacci-style · 1 / 64','preset_fib',1,64]
+ ];
+ button.disabled=true;output.replaceChildren();
+ try{
+  const trained=[];
+  for(let i=0;i<candidates.length;i++){
+   const [name,mode,start,cap]=candidates[i];
+   status.textContent='Training setup '+(i+1)+' of '+candidates.length+': '+name;
+   const result=await run(train,null,true,{mode,start,cap,wins:1});
+   trained.push({name,mode,start,cap,train:result});
+   await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  trained.sort((a,b)=>b.train.net-a.train.net);
+  const finalists=trained.slice(0,5);
+  for(let i=0;i<finalists.length;i++){
+   const item=finalists[i];status.textContent='Holdout testing '+(i+1)+' of '+finalists.length+': '+item.name;
+   item.test=await run(test,null,true,{mode:item.mode,start:item.start,cap:item.cap,wins:1});
+   await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  const heading=document.createElement('p');heading.className='muted';
+  heading.textContent='Ranked by TRAINING net profit only. Holdout shoes were not used to choose the top five. All setups use the same shoes in each group.';
+  output.append(heading);
+  const table=document.createElement('table');table.style.cssText='width:100%;min-width:610px;text-align:left;font-size:12px';
+  const rows=[['Rank / setup','Training net','Training worst shoe','Holdout net','Holdout worst shoe','Holdout profitable shoes']];
+  trained.forEach((x,i)=>rows.push([
+   (i+1)+'. '+x.name,
+   x.train.net.toFixed(2),
+   x.train.biggestLosingShoe===null?'—':x.train.biggestLosingShoe.toFixed(2),
+   x.test?x.test.net.toFixed(2):'Not tested',
+   x.test?(x.test.biggestLosingShoe===null?'—':x.test.biggestLosingShoe.toFixed(2)):'—',
+   x.test?(100*x.test.profitableShoes/testCount).toFixed(1)+'%':'—'
+  ]));
+  rows.forEach((row,i)=>{const tr=document.createElement('tr');row.forEach(value=>{const cell=document.createElement(i?'td':'th');cell.textContent=value;cell.style.cssText='padding:8px 6px;border-bottom:1px solid #405573;white-space:nowrap';tr.append(cell)});table.append(tr)});
+  output.append(table);
+  const foot=document.createElement('p');foot.className='muted';foot.textContent='Training: first '+trainCount+' shoes. Holdout: next '+testCount+' shoes. No shoe appears in both. Net results include 5% Banker commission. Worst shoe is the most negative individual shoe; inspect drawdown separately. Positive results may reflect randomness or simulator defects, not a proven edge.';output.append(foot);
+  status.textContent='Finished '+candidates.length+' training comparisons and '+finalists.length+' independent holdout comparisons.';
+ }catch(e){status.textContent='Optimizer error: '+e.message}
  finally{button.disabled=false}
 };
 $('cc-compare').onclick=async()=>{if(!dataset){$('cc-compare-status').textContent='Generate or upload shoes first.';return}const button=$('cc-compare');button.disabled=true;const shoes=Array.from(dataset.values()).slice(0,Number($('cc-count').value));const status=$('cc-compare-status');$('cc-compare-results').replaceChildren();try{status.textContent='Testing Flat on '+shoes.length.toLocaleString()+' shoes…';await new Promise(r=>setTimeout(r,20));const flat=await run(shoes,'flat',true);status.textContent='Testing Double + 1 on the same shoes…';await new Promise(r=>setTimeout(r,20));const doubled=await run(shoes,'doubleplus',true);const table=document.createElement('table');table.style.cssText='width:100%;min-width:310px;text-align:left';const entries=[['Metric','Flat','Double + 1'],['Profitable shoes',(100*flat.profitableShoes/shoes.length).toFixed(1)+'%',(100*doubled.profitableShoes/shoes.length).toFixed(1)+'%'],['Net units',flat.net.toFixed(2),doubled.net.toFixed(2)],['Average units/shoe',(flat.net/shoes.length).toFixed(2),(doubled.net/shoes.length).toFixed(2)],['Losing shoes',flat.losingShoes,doubled.losingShoes],['Worst shoe',flat.biggestLosingShoe===null?'—':flat.biggestLosingShoe.toFixed(2),doubled.biggestLosingShoe===null?'—':doubled.biggestLosingShoe.toFixed(2)],['Break-even profitable shoes',flat.profitableShoes&&flat.losingShoes?(100*(Math.abs(flat.losingShoeLoss/flat.losingShoes))/(flat.winningShoeProfit/flat.profitableShoes+Math.abs(flat.losingShoeLoss/flat.losingShoes))).toFixed(2)+'%':'—',doubled.profitableShoes&&doubled.losingShoes?(100*(Math.abs(doubled.losingShoeLoss/doubled.losingShoes))/(doubled.winningShoeProfit/doubled.profitableShoes+Math.abs(doubled.losingShoeLoss/doubled.losingShoes))).toFixed(2)+'%':'—']];for(const [i,row] of entries.entries()){const tr=document.createElement('tr');for(const value of row){const cell=document.createElement(i?'td':'th');cell.textContent=value;cell.style.cssText='padding:9px 5px;border-bottom:1px solid #405573;font-size:13px';tr.appendChild(cell)}table.appendChild(tr)}$('cc-compare-results').appendChild(table);status.textContent='Compared '+shoes.length.toLocaleString()+' identical shoes. Positive net units indicate simulated profit; neither result predicts future profitability.'}catch(e){status.textContent='Comparison error: '+e.message}finally{button.disabled=false}};
