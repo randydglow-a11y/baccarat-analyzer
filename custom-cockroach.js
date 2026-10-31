@@ -214,7 +214,7 @@ $('cc-three-run').onclick=async()=>{
  finally{button.disabled=false}
 };
 const stopCompare=document.createElement('section');stopCompare.className='panel';stopCompare.id='cc-stop-comparison';
-stopCompare.innerHTML='<h2>🛑 Compare stopping rules</h2><p class="muted">Test 1, 2, 3 winning columns or the whole shoe on the SAME loaded shoes, using your current road, Match/Mismatch, progression, cap and recovery settings. Shows net units, profitable shoes, worst shoe, and maximum cumulative drawdown. A different stop rule changes risk, not the casino house edge.</p><button type="button" class="player" id="cc-stop-run">Compare four stopping rules</button><p id="cc-stop-status" class="muted">Load shoes to compare.</p><div id="cc-stop-results" style="overflow-x:auto"></div>';
+stopCompare.innerHTML='<h2>🛑 Compare stopping rules</h2><p class="muted">Test 1, 2, 3 winning columns or the whole shoe on the SAME loaded shoes, using your current road, Match/Mismatch, progression, cap and recovery settings. Shows total units wagered, net return per 100 units wagered, net units, profitable shoes, worst shoe, and maximum cumulative drawdown. A different stop rule changes risk, not the casino house edge.</p><button type="button" class="player" id="cc-stop-run">Compare four stopping rules</button><p id="cc-stop-status" class="muted">Load shoes to compare.</p><div id="cc-stop-results" style="overflow-x:auto"></div>';
 comparison.insertAdjacentElement('afterend',stopCompare);
 $('cc-stop-run').onclick=async()=>{
  const button=$('cc-stop-run'),status=$('cc-stop-status'),output=$('cc-stop-results');
@@ -229,15 +229,17 @@ $('cc-stop-run').onclick=async()=>{
    for(const audit of r.shoeAudits){cumulative+=audit.net;peak=Math.max(peak,cumulative);drawdown=Math.max(drawdown,peak-cumulative)}
    const batches=[];
    for(let j=0;j<5;j++){const slice=r.shoeAudits.slice(Math.floor(j*all.length/5),Math.floor((j+1)*all.length/5));batches.push(slice.reduce((sum,x)=>sum+x.net,0))}
-   results.push({label:choice.label,net:r.net,avg:r.net/all.length,profitable:100*r.profitableShoes/all.length,worst:r.biggestLosingShoe,drawdown,batches});
+   const wagered=r.shoeAudits.reduce((sum,shoe)=>sum+shoe.bets.reduce((total,bet)=>total+(bet.outcome==='T'?0:bet.stake),0),0);
+   const resolvedBets=r.shoeAudits.reduce((sum,shoe)=>sum+shoe.bets.filter(bet=>bet.outcome!=='T').length,0);
+   results.push({label:choice.label,net:r.net,avg:r.net/all.length,profitable:100*r.profitableShoes/all.length,worst:r.biggestLosingShoe,drawdown,batches,wagered,resolvedBets,returnPer100:wagered?100*r.net/wagered:null});
    await new Promise(resolve=>setTimeout(resolve,0));
   }
-  const table=document.createElement('table');table.style.cssText='width:100%;min-width:640px;font-size:12px;text-align:left';
+  const table=document.createElement('table');table.style.cssText='width:100%;min-width:920px;font-size:12px;text-align:left';
   const add=(items,head)=>{const tr=document.createElement('tr');items.forEach(value=>{const cell=document.createElement(head?'th':'td');cell.textContent=value;cell.style.cssText='padding:8px 7px;border-bottom:1px solid #405573;white-space:nowrap';tr.append(cell)});table.append(tr)};
-  add(['Stop rule','Net units','Units/shoe','Profitable shoes','Worst shoe','Max drawdown','Positive batches'],true);
-  results.forEach(x=>add([x.label,x.net.toFixed(2),x.avg.toFixed(3),x.profitable.toFixed(1)+'%',x.worst===null?'—':x.worst.toFixed(2),x.drawdown.toFixed(2),x.batches.filter(n=>n>0)+'/5'],false));
+  add(['Stop rule','Net units','Total units wagered','Net / 100 wagered','Resolved bets','Units/shoe','Profitable shoes','Worst shoe','Max drawdown','Positive batches'],true);
+  results.forEach(x=>add([x.label,x.net.toFixed(2),x.wagered.toFixed(2),x.returnPer100===null?'—':x.returnPer100.toFixed(2),String(x.resolvedBets),x.avg.toFixed(3),x.profitable.toFixed(1)+'%',x.worst===null?'—':x.worst.toFixed(2),x.drawdown.toFixed(2),x.batches.filter(n=>n>0)+'/5'],false));
   output.append(table);
-  const note=document.createElement('p');note.className='muted';note.textContent='Each row uses the identical '+all.length+' shoes. Five batches follow shoe order. Drawdown is calculated from the cumulative shoe net sequence, not intrashoe bankroll changes. These are in-sample comparisons; a favorable result should be retested on fresh shoes.';output.append(note);
+  const note=document.createElement('p');note.className='muted';note.textContent='Each row uses the identical '+all.length+' shoes. Five batches follow shoe order. Drawdown is calculated from the cumulative shoe net sequence, not intrashoe bankroll changes. Total units wagered sums stakes on resolved Banker/Player bets; ties are pushes and excluded to avoid inflating turnover. Net / 100 wagered = 100 × net units ÷ total units wagered (negative means loss). These are in-sample comparisons; a favorable result should be retested on fresh shoes.';output.append(note);
   status.textContent='Finished four stopping-rule comparisons. Lower drawdown means less simulated peak-to-trough loss.';
  }catch(e){status.textContent='Stopping-rule comparison error: '+e.message}
  finally{button.disabled=false}
