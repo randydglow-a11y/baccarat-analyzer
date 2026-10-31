@@ -503,11 +503,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 'use strict';
 function setup(){
  const home=document.getElementById('custom-cockroach'),daily=document.getElementById('cc-daily-target');
- if(!home||!daily||document.getElementById('cc-simple-nav'))return;
+ if(document.getElementById('cc-simple-nav'))return;
  const nav=document.createElement('section');nav.id='cc-simple-nav';
  nav.innerHTML='<h2>🧭 Quick workspace</h2><p class="cc-nav-help">Use the main tools first. Extra comparisons and audits are folded away until you need them.</p><div class="cc-nav-buttons"></div>';
  const dash=document.querySelector('.dashboard-nav');
- if(dash)dash.insertAdjacentElement('afterend',nav);else home.parentNode.insertBefore(nav,home);
+ if(dash)dash.insertAdjacentElement('afterend',nav);else (home||document.querySelector('main'))?.prepend(nav);
  const actions=[
   ['🎮 Live play',()=>document.getElementById('live-companion'),true],
   ['🎲 Generate shoes',()=>document.getElementById('shoe-generator')],
@@ -573,7 +573,7 @@ function setup(){
  }
  // Keep the most useful controls expanded: strategy, daily goal and shoe generation.
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setup();setTimeout(setup,250)});else {setup();setTimeout(setup,250)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setup();setTimeout(setup,250);setTimeout(setup,1200)});else {setup();setTimeout(setup,250);setTimeout(setup,1200)}
 })();
 </script>
 
