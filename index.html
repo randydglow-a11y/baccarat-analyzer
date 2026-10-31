@@ -495,7 +495,7 @@ function setup(){
   ['🎲 Generate shoes',()=>document.getElementById('shoe-generator')],
   ['📈 Test strategy',()=>document.getElementById('custom-cockroach')],
   ['📅 Daily goal',()=>document.getElementById('cc-daily-target')],
-  ['🏆 Find best setup',()=>document.getElementById('cc-best-strategy')||Array.from(document.querySelectorAll('section')).find(e=>/find (my |the )?best (strategy|setup)/i.test(e.querySelector('h2')?.textContent||''))],
+  ['🏆 Find best setup',()=>document.getElementById('cc-best-strategy')||document.querySelector('[id*="best-strategy"],[id*="optimizer"]')||Array.from(document.querySelectorAll('section')).find(e=>/best (strategy|setup)|find my best/i.test(e.textContent.slice(0,250)))],
   ['🧪 Audits & extras',()=>document.getElementById('cc-deep-audit')]
  ];
  for(const [label,locate,isLive] of actions){
@@ -512,6 +512,8 @@ function setup(){
    const target=locate();
    if(!target){alert('This workspace is not available yet.');return}
    const panel=target.closest('section.panel')||target;
+   // Restore any ancestor visibility before navigating into a nested workspace.
+   for(let ancestor=panel;ancestor&&ancestor!==document.body;ancestor=ancestor.parentElement){ancestor.classList.remove('cc-is-folded');if(ancestor.hidden)ancestor.hidden=false}
    panel.classList.remove('cc-is-folded');
    const toggle=panel.querySelector(':scope > .cc-fold-toggle');
    if(toggle){toggle.setAttribute('aria-expanded','true');toggle.textContent='Hide tools and results  ▴'}
@@ -528,7 +530,7 @@ function setup(){
  }
  // Keep the most useful controls expanded: strategy, daily goal and shoe generation.
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setup();setTimeout(setup,250)});else {setup();setTimeout(setup,250)}
 })();
 </script>
 
