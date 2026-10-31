@@ -491,14 +491,33 @@ function setup(){
  const dash=document.querySelector('.dashboard-nav');
  if(dash)dash.insertAdjacentElement('afterend',nav);else home.parentNode.insertBefore(nav,home);
  const actions=[
-  ['🎮 Live play',()=>document.getElementById('road')?.closest('.panel')],
+  ['🎮 Live play',()=>document.getElementById('live-companion'),true],
   ['🎲 Generate shoes',()=>document.getElementById('shoe-generator')],
   ['📈 Test strategy',()=>document.getElementById('custom-cockroach')],
   ['📅 Daily goal',()=>document.getElementById('cc-daily-target')],
-  ['🏆 Find best setup',()=>document.getElementById('cc-best-strategy')||Array.from(document.querySelectorAll('.panel')).find(e=>e.querySelector('h2')?.textContent.includes('Find My Best Strategy'))],
+  ['🏆 Find best setup',()=>document.getElementById('cc-best-strategy')||Array.from(document.querySelectorAll('section')).find(e=>/find (my |the )?best (strategy|setup)/i.test(e.querySelector('h2')?.textContent||''))],
   ['🧪 Audits & extras',()=>document.getElementById('cc-deep-audit')]
  ];
- for(const [label,locate] of actions){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=label;button.onclick=()=>{const target=locate();if(!target)return;target.classList.remove('cc-is-folded');const toggle=target.querySelector(':scope > .cc-fold-toggle');if(toggle)toggle.setAttribute('aria-expanded','true');target.scrollIntoView({behavior:'smooth',block:'start'})};nav.querySelector('.cc-nav-buttons').append(button)}
+ for(const [label,locate,isLive] of actions){
+  const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=label;
+  button.onclick=()=>{
+   if(isLive){
+    if(!document.body.classList.contains('live-play-mode'))document.getElementById('live-mode-switch')?.click();
+   }else if(document.body.classList.contains('live-play-mode')){
+    document.getElementById('live-mode-switch')?.click();
+    document.body.classList.remove('live-play-mode');
+    try{localStorage.setItem('baccarat-live-mode','false')}catch(e){}
+   }
+   const target=locate();
+   if(!target){alert('This workspace is not available yet.');return}
+   const panel=target.closest('section.panel')||target;
+   panel.classList.remove('cc-is-folded');
+   const toggle=panel.querySelector(':scope > .cc-fold-toggle');
+   if(toggle){toggle.setAttribute('aria-expanded','true');toggle.textContent='Hide tools and results  ▴'}
+   requestAnimationFrame(()=>panel.scrollIntoView({behavior:'smooth',block:'start'}));
+  };
+  nav.querySelector('.cc-nav-buttons').append(button);
+ }
  const foldTargets=['cc-audit','cc-validation','cc-deep-audit','cc-three-way','cc-stop-comparison'];
  for(const id of foldTargets){const panel=document.getElementById(id);if(!panel||panel.querySelector(':scope > .cc-fold-toggle'))continue;
   panel.classList.add('cc-fold-panel','cc-is-folded');
