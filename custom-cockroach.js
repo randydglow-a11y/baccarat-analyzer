@@ -158,9 +158,6 @@ function independentSignal(history,c){
  }
  return possible.length===1?{bet:possible[0],column:col+1}:null;
 }
-const finalCheck=document.createElement('section');finalCheck.className='panel';finalCheck.id='cc-final-check';
-finalCheck.innerHTML='<h2>🏁 Final Road & Flat-Bet Check</h2><p class="muted">Independently reconstruct the road from raw outcomes and verify every recorded betting signal, then compare your current progression against flat 1-unit bets on the same shoes. Uses your selected road, rows, Match/Mismatch, stop rule and recovery settings. Flat comparison disables recovery. This is a separate road-calculation cross-check, not a claim of positive expected value.</p><button type="button" class="player" id="cc-final-run">Run Final Check</button><p id="cc-final-status" class="muted">Generate or load shoes first.</p><div id="cc-final-results"></div>';
-deepAudit.insertAdjacentElement('afterend',finalCheck);
 $('cc-final-run').onclick=async()=>{
  const button=$('cc-final-run'),status=$('cc-final-status'),output=$('cc-final-results');
  if(!dataset||!dataset.size){status.textContent='Generate or load shoes first.';return}
@@ -201,7 +198,7 @@ $('cc-final-run').onclick=async()=>{
 };
 
 const deepAudit=document.createElement('section');deepAudit.className='panel';deepAudit.id='cc-deep-audit';
-deepAudit.innerHTML='<h2>🔬 Independent Strategy Audit</h2><p class="muted">Check each recorded wager against pre-hand signals, independently recalculate payouts, progression stakes, ties, and shoe loss limits. Shows specific discrepancies. Road construction still shares the app road engine; this is an accounting/timing cross-check, not a fully independent road implementation or proof of an edge.</p><button type="button" class="player" id="cc-deep-run">Run Independent Strategy Audit</button><p class="muted" id="cc-deep-status">Generate or load shoes first.</p><div id="cc-deep-results"></div>';
+deepAudit.innerHTML='<h2>🔬 Independent Strategy Audit</h2><p class="muted">Check each recorded wager against pre-hand signals, independently recalculate payouts, progression stakes, ties, and shoe loss limits. Shows specific discrepancies. Road construction still shares the app road engine; this is an accounting/timing cross-check, not a fully independent road implementation or proof of an edge.</p><button type="button" class="player" id="cc-deep-run">Run Independent Strategy Audit</button><p class="muted" id="cc-deep-status">Generate or load shoes first.</p><div id="cc-deep-results"></div><div id="cc-final-check" style="border-top:1px solid #405573;margin-top:20px;padding-top:20px"><h2>🏁 Final Road & Flat-Bet Check</h2><p class="muted">Independently reconstruct the road from raw outcomes and verify every recorded betting signal, then compare your current progression against flat 1-unit bets on the same shoes. Uses your selected road, rows, Match/Mismatch, stop rule and recovery settings. Flat comparison disables recovery. This is a separate road-calculation cross-check, not a claim of positive expected value.</p><button type="button" class="player" id="cc-final-run">Run Final Check</button><p id="cc-final-status" class="muted">Generate or load shoes first.</p><div id="cc-final-results"></div></div>';
 validation.insertAdjacentElement('afterend',deepAudit);
 $('cc-deep-run').onclick=async()=>{
  const button=$('cc-deep-run'),status=$('cc-deep-status'),output=$('cc-deep-results');
