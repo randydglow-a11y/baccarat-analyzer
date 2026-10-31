@@ -25,7 +25,7 @@ function nextSignal(history,config){
 function settings(){return {strategy:$('cc-strategy').value,rows:Number($('cc-rows').value),mode:$('cc-mode').value,start:Math.max(1,Number($('cc-start').value)||1),add:Math.max(0,Number($('cc-add').value)||0),mult:Math.max(1,Number($('cc-mult').value)||1),cap:Math.max(1,Math.min(1000000,Number($('cc-cap').value)||64)),capMethod:$('cc-cap-method').value,steps:Math.max(1,Math.min(30,Math.floor(Number($('cc-steps').value)||4))),wins:$('cc-wins').value==='whole'?Infinity:Number($('cc-wins').value),recovery:$('cc-recovery').checked,recoveryMult:Math.max(1,Math.min(100,Number($('cc-recovery-mult').value)||5))}}
 function nextStake(current,previous,config){const presets={preset_safe:[1,1,2,2,3,3],preset_fib:[1,2,3,5,8,13],preset_double:[1,2,4,8,16,32]};if(presets[config.mode]){const sequence=presets[config.mode];const index=Math.max(0,Math.min(sequence.length-1,Number(config.presetStep)||0));config.presetStep=index+1;return sequence[Math.min(index+1,sequence.length-1)]}switch(config.mode){case 'flat':return config.start;case 'add':return current+config.add;case 'double':return current*2;case 'doubleplus':return current*2+1;case 'triple':return current*3;case 'fibonacci':return current+previous;default:return current*config.mult+config.add}}
 function progression(c){const x={...c,presetStep:0};let current=x.mode.startsWith('preset_')?1:x.start,previous=0,total=0,seq=[];for(let i=0;i<x.steps;i++){seq.push(Number(current.toFixed(2)));total+=current;const next=nextStake(current,previous,x);previous=current;current=next;if(!Number.isFinite(current)||current>1e12)break}return {seq,total,max:seq[seq.length-1]}}
-function recoveryProgression(c){return progression({...c,start:c.start*c.recoveryMult,steps:4})}
+function recoveryProgression(c){return progression({...c,start:c.start*c.recoveryMult,steps:c.steps})}
 function preview(){const c=settings(),p=progression(c),rp=recoveryProgression(c),risk=p.total;$('cc-manual-cap').style.display=c.capMethod==='stake'?'':'none';$('cc-steps').disabled=c.capMethod!=='steps';$('cc-preview').textContent=c.capMethod==='steps'?'Progression: '+p.seq.join(' → ')+' units | Maximum single bet: '+p.max+' units | Whole-shoe normal loss cap: '+risk.toFixed(2)+' units; recovery-shoe cap: '+rp.total.toFixed(2)+' units. '+(c.recovery?'Recovery starts in the NEXT shoe: '+rp.seq.join(' → ')+' units. ':'')+'Shoe ends at the limit or before a bet that could exceed it.':'Manual maximum single stake: '+c.cap+' units. Progression example: '+p.seq.join(' → ')}
 for(const id of ['cc-strategy','cc-rows','cc-mode','cc-start','cc-add','cc-mult','cc-cap','cc-cap-method','cc-steps','cc-wins','cc-recovery','cc-recovery-mult'])$(id).addEventListener('change',preview);preview();
 async function run(shoes,modeOverride=null,quiet=false,configOverrides=null){
@@ -42,10 +42,10 @@ async function run(shoes,modeOverride=null,quiet=false,configOverrides=null){
    if(bet){
     if(shoeGrossLoss+stake>shoeLossCap+0.0000001){if(config.recovery&&!recoveryShoe)recoveryNextShoe=true;break}
     const betColumn=pendingTieBet?pendingTieColumn:signal.col;
-    if(stake>cap||(config.capMethod==='steps'&&lossesInColumn>=(recoveryStage?4:config.steps))){stopped=true;stake=config.mode.startsWith('preset_')?1:config.start;previousStake=0;config.presetStep=0;pendingTieBet=null;pendingTieColumn=null;result.capStops++;history.push(outcome);if(recoveryShoe)break;continue}shoePlayed.add(betColumn);result.stakeMax=Math.max(result.stakeMax,stake);result.bets++;
+    if(stake>cap||(config.capMethod==='steps'&&lossesInColumn>=config.steps)){stopped=true;stake=config.mode.startsWith('preset_')?1:config.start;previousStake=0;config.presetStep=0;pendingTieBet=null;pendingTieColumn=null;result.capStops++;history.push(outcome);if(recoveryShoe)break;continue}shoePlayed.add(betColumn);result.stakeMax=Math.max(result.stakeMax,stake);result.bets++;
     if(outcome==='T'){result.pushes++;pendingTieBet=bet;pendingTieColumn=betColumn;betsAudit.push({hand:handNumber,column:betColumn+1,bet,stake,outcome,delta:0,net:shoeRunning});}
     else if(outcome===bet){pendingTieBet=null;pendingTieColumn=null;shoeWon.add(betColumn);result.wins++;result.net+=stake*(bet==='B'?.95:1);shoeRunning+=stake*(bet==='B'?.95:1);betsAudit.push({hand:handNumber,column:betColumn+1,bet,stake,outcome,delta:stake*(bet==='B'?.95:1),net:shoeRunning});result.lossRun=0;stake=config.mode.startsWith('preset_')?1:config.start;previousStake=0;config.presetStep=0;stopped=true;columnWins++;result.completed++;if(recoveryShoe)columnWins=Infinity}
-    else{pendingTieBet=null;pendingTieColumn=null;result.losses++;result.net-=stake;shoeRunning-=stake;shoeGrossLoss+=stake;betsAudit.push({hand:handNumber,column:betColumn+1,bet,stake,outcome,delta:-stake,net:shoeRunning});const next=nextStake(stake,previousStake,config);previousStake=stake;stake=next;lossesInColumn++;if(config.recovery&&config.capMethod==='steps'&&!recoveryShoe&&lossesInColumn===4){recoveryNextShoe=true;stopped=true;stake=0}result.lossRun++;result.maxLossRun=Math.max(result.maxLossRun,result.lossRun);/* Continue after losses until a winning bet or the selected stake cap. */}
+    else{pendingTieBet=null;pendingTieColumn=null;result.losses++;result.net-=stake;shoeRunning-=stake;shoeGrossLoss+=stake;betsAudit.push({hand:handNumber,column:betColumn+1,bet,stake,outcome,delta:-stake,net:shoeRunning});const next=nextStake(stake,previousStake,config);previousStake=stake;stake=next;lossesInColumn++;if(config.recovery&&config.capMethod==='steps'&&!recoveryShoe&&lossesInColumn===config.steps){recoveryNextShoe=true;stopped=true;stake=0}result.lossRun++;result.maxLossRun=Math.max(result.maxLossRun,result.lossRun);/* Continue after losses until a winning bet or the selected stake cap. */}
     result.peak=Math.max(result.peak,result.net);result.drawdown=Math.max(result.drawdown,result.peak-result.net);
    }
    history.push(outcome);
@@ -83,7 +83,7 @@ $('cc-validate-run').onclick=async()=>{
    const row=n%c.rows,col=Math.floor(n/c.rows),prior=col>0?before[(col-1)*c.rows+row]:null;
    const valid=[];
    if(prior)for(const side of ['B','P']){
-    const after=road.derived(road.buildBig(history.concat(side)),3);
+    const after=c.roadType==='big'?road.buildBig(history.concat(side)).cells:road.derived(road.buildBig(history.concat(side)),offset);
     if(after.length===n+1&&(c.strategy==='match'?after[n].v===prior.v:after[n].v!==prior.v))valid.push(side);
    }
    if(prior){if(valid.length===1)unambiguous++;else if(valid.length===2)ambiguous++;else noSignal++}
@@ -100,7 +100,7 @@ $('cc-validate-run').onclick=async()=>{
     const expected=actual==='T'?0:actual===bet.bet?bet.stake*(bet.bet==='B'?0.95:1):-bet.stake;
     shoeNet+=expected;
     if(Math.abs(bet.delta-expected)>0.00001||Math.abs(bet.net-shoeNet)>0.00001)report('Shoe '+(j+1)+' hand '+(h+1)+': payout or running total mismatch');
-    if(bet.stake>c.cap)report('Shoe '+(j+1)+' hand '+(h+1)+': stake above cap');
+    if(c.capMethod==='stake'&&bet.stake>c.cap)report('Shoe '+(j+1)+' hand '+(h+1)+': stake above cap');
     if(actual==='T'){previousBet=bet.bet;previousStake=bet.stake;previousColumn=bet.column}
     else{previousBet=null;previousStake=null;previousColumn=null}
    }else if(previousBet!==null){report('Shoe '+(j+1)+' hand '+(h+1)+': missing repeated wager after tie')}
