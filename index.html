@@ -274,6 +274,18 @@ document.getElementById('history').innerHTML=hands.slice(-60).reverse().map(v=>'
 })();
 </script><script src="dashboard.js?v=20261029-dashboard-v3"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script><script src="pdf-import.js?v=20261029-pdf-v7"></script><script src="screenshot-import.js?v=20261029-v2"></script><script src="game-database.js?v=20261029-v1"></script><script src="wizard-replay.js?v=20261030-v10"></script><script src="strategy-testing.js?v=20261030-v1"></script><script src="road-batch.js?v=20261030-v1"></script><script src="bet-backtest.js?v=20261030-v1"></script><script src="custom-cockroach.js?v=20261031-recovery-check-v2-1106"></script><script>
 (function(){
+ function ensureRecoveryVisible(){
+  const validator=document.getElementById('cc-validation'),recovery=document.getElementById('cc-recovery-check');
+  if(!validator)return;
+  if(recovery){validator.insertAdjacentElement('afterend',recovery);return}
+  if(document.getElementById('cc-recovery-missing'))return;
+  const note=document.createElement('p');note.id='cc-recovery-missing';note.className='muted';note.textContent='Recovery checks are not loaded. This app is using an older cached analyzer script. Close this tab and open the latest app link.';
+  validator.append(note);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureRecoveryVisible);else ensureRecoveryVisible();
+})();
+</script><script>
+(function(){
 'use strict';
 const host=document.getElementById('custom-cockroach')||document.getElementById('road-batch');if(!host)return;
 const panel=document.createElement('section');panel.className='panel';panel.id='shoe-generator';
