@@ -79,7 +79,7 @@ $('cc-validate-run').onclick=async()=>{
   const original=shoes[j],auditRow=sim.shoeAudits[j],history=[],bets=auditRow.bets;
   let cursor=0,shoeNet=0,previousBet=null,previousColumn=null,previousStake=null;
   for(let h=0;h<auditRow.handCount;h++){
-   const actual=original[h],before=road.derived(road.buildBig(history),3),n=before.length;
+   const actual=original[h],offset={big:0,eye:1,small:2,cockroach:3}[c.roadType||'cockroach'],before=offset===0?road.buildBig(history).cells:road.derived(road.buildBig(history),offset),n=before.length;
    const row=n%c.rows,col=Math.floor(n/c.rows),prior=col>0?before[(col-1)*c.rows+row]:null;
    const valid=[];
    if(prior)for(const side of ['B','P']){
