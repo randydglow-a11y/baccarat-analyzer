@@ -213,6 +213,35 @@ $('cc-three-run').onclick=async()=>{
  }catch(e){status.textContent='Comparison error: '+e.message}
  finally{button.disabled=false}
 };
+const stopCompare=document.createElement('section');stopCompare.className='panel';stopCompare.id='cc-stop-comparison';
+stopCompare.innerHTML='<h2>🛑 Compare stopping rules</h2><p class="muted">Test 1, 2, 3 winning columns or the whole shoe on the SAME loaded shoes, using your current road, Match/Mismatch, progression, cap and recovery settings. Shows net units, profitable shoes, worst shoe, and maximum cumulative drawdown. A different stop rule changes risk, not the casino house edge.</p><button type="button" class="player" id="cc-stop-run">Compare four stopping rules</button><p id="cc-stop-status" class="muted">Load shoes to compare.</p><div id="cc-stop-results" style="overflow-x:auto"></div>';
+comparison.insertAdjacentElement('afterend',stopCompare);
+$('cc-stop-run').onclick=async()=>{
+ const button=$('cc-stop-run'),status=$('cc-stop-status'),output=$('cc-stop-results');
+ if(!dataset||dataset.size===0){status.textContent='Generate or upload shoes first.';return}
+ button.disabled=true;output.replaceChildren();
+ try{
+  const all=Array.from(dataset.values()).slice(0,10000),config=settings(),choices=[{label:'1 winning column',wins:1},{label:'2 winning columns',wins:2},{label:'3 winning columns',wins:3},{label:'Whole shoe',wins:Infinity}],results=[];
+  for(let i=0;i<choices.length;i++){
+   const choice=choices[i];status.textContent='Testing '+choice.label+' ('+(i+1)+'/4) on '+all.length+' shoes…';
+   const r=await run(all,null,false,{...config,wins:choice.wins});
+   let cumulative=0,peak=0,drawdown=0;
+   for(const audit of r.shoeAudits){cumulative+=audit.net;peak=Math.max(peak,cumulative);drawdown=Math.max(drawdown,peak-cumulative)}
+   const batches=[];
+   for(let j=0;j<5;j++){const slice=r.shoeAudits.slice(Math.floor(j*all.length/5),Math.floor((j+1)*all.length/5));batches.push(slice.reduce((sum,x)=>sum+x.net,0))}
+   results.push({label:choice.label,net:r.net,avg:r.net/all.length,profitable:100*r.profitableShoes/all.length,worst:r.biggestLosingShoe,drawdown,batches});
+   await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  const table=document.createElement('table');table.style.cssText='width:100%;min-width:640px;font-size:12px;text-align:left';
+  const add=(items,head)=>{const tr=document.createElement('tr');items.forEach(value=>{const cell=document.createElement(head?'th':'td');cell.textContent=value;cell.style.cssText='padding:8px 7px;border-bottom:1px solid #405573;white-space:nowrap';tr.append(cell)});table.append(tr)};
+  add(['Stop rule','Net units','Units/shoe','Profitable shoes','Worst shoe','Max drawdown','Positive batches'],true);
+  results.forEach(x=>add([x.label,x.net.toFixed(2),x.avg.toFixed(3),x.profitable.toFixed(1)+'%',x.worst===null?'—':x.worst.toFixed(2),x.drawdown.toFixed(2),x.batches.filter(n=>n>0)+'/5'],false));
+  output.append(table);
+  const note=document.createElement('p');note.className='muted';note.textContent='Each row uses the identical '+all.length+' shoes. Five batches follow shoe order. Drawdown is calculated from the cumulative shoe net sequence, not intrashoe bankroll changes. These are in-sample comparisons; a favorable result should be retested on fresh shoes.';output.append(note);
+  status.textContent='Finished four stopping-rule comparisons. Lower drawdown means less simulated peak-to-trough loss.';
+ }catch(e){status.textContent='Stopping-rule comparison error: '+e.message}
+ finally{button.disabled=false}
+};
 const optimizer=document.createElement('section');optimizer.className='panel';optimizer.id='cc-optimizer';
 optimizer.innerHTML='<h2>📊 Strategy Optimizer</h2><p class="muted">Compare betting progressions on identical training shoes, then evaluate the best candidates on separate holdout shoes. Keeps your selected Match/Mismatch strategy and row count. Uses one winning column per shoe. Training results are not evidence of a guaranteed advantage.</p><div class="actions"><label>Training shoes <select id="cc-opt-train"><option value="250">250</option><option value="500" selected>500</option><option value="1000">1,000</option><option value="2000">2,000</option></select></label><label>Holdout shoes <select id="cc-opt-test"><option value="250">250</option><option value="500" selected>500</option><option value="1000">1,000</option><option value="2000">2,000</option></select></label><button type="button" class="player" id="cc-opt-run">Compare setups</button></div><p class="muted" id="cc-opt-status">Generate or upload shoes to start. Requires enough shoes for both groups.</p><div id="cc-opt-results" style="overflow-x:auto"></div>';
 validation.insertAdjacentElement('afterend',optimizer);
