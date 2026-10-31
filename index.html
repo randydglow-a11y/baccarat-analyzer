@@ -391,6 +391,9 @@ function init(){
 window.addEventListener('baccarat-profit-results',function(e){
  const home=document.getElementById('simple-home');if(!home)return;
  const profits=e.detail.profits,dayInput=document.getElementById('simple-shoes-day');
+ const requested=Number(document.getElementById('simple-shoes-test')?.value)||profits.length;
+ const status=document.getElementById('simple-shoes-status');
+ if(status){status.textContent='Requested: '+requested.toLocaleString()+' shoes · Actually tested: '+profits.length.toLocaleString()+' shoes'+(profits.length<requested?' · Only '+profits.length.toLocaleString()+' loaded shoes were available.':' · Full requested sample tested.');}
  if(!profits.length)return;
  const tiles=home.querySelectorAll('.simple-tile strong');
  function update(){
