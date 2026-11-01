@@ -548,7 +548,7 @@ function setup(){
    const help=nav.querySelector('.cc-nav-help');
    if(help)help.textContent='Opening '+label.replace(/^\\S+\\s*/,'')+'…';
    setTimeout(()=>{
-    panel.scrollIntoView({behavior:'auto',block:'start'});
+    (label.toLowerCase().includes('test strategy') ? (document.getElementById('cc-entry-mode')?.closest('label') || document.getElementById('custom-cockroach') || panel) : panel).scrollIntoView({behavior:'auto',block:'center'});
     if(help)help.textContent='Opened '+label.replace(/^\\S+\\s*/,'')+'.';
    },60);
   };
@@ -667,7 +667,7 @@ function openBaccaratWorkspace(kind){
  if(!target){alert('This tool has not loaded. Please refresh the page and try again.');return;}
  for(let node=target;node&&node!==document.body;node=node.parentElement){node.hidden=false;node.classList.remove('cc-is-folded');if(node.style.display==='none')node.style.removeProperty('display');}
  const toggle=target.querySelector(':scope > .cc-fold-toggle');if(toggle){toggle.setAttribute('aria-expanded','true');toggle.textContent='Hide tools and results  ▴';}
- target.scrollIntoView({behavior:'auto',block:'start'});
+ (kind==='strategy' ? (document.getElementById('cc-entry-mode')?.closest('label') || target) : target).scrollIntoView({behavior:'auto',block:'center'});
 }
 </script>
 </body></html>
