@@ -15,8 +15,8 @@ function updateSequence(state,c,won,side){
  const v=state.seq[state.index];state.net+=won?v*(side==='B'?.95:1):-v;
  if(c.mode==='sequence_hybrid'&&state.net>0){state.index=0;state.net=0;state.wins=0;state.losses=0;return}
  if(c.mode==='sequence_reset'){if(won)state.index=0;else if(state.index<state.seq.length-1)state.index++;else state.stopped=c.maxRule==='stop';return}
- if(c.mode==='sequence_lr'){state.index=won?Math.max(0,state.index-1):Math.min(state.seq.length-1,state.index+1);if(!won&&state.index===state.seq.length-1&&c.maxRule==='stop')state.stopped=true;return}
- if(won){state.wins++;state.losses=0;if(state.index>=state.start&&state.wins>=c.winThreshold){const current=state.seq[state.index];let i=state.index-1;while(i>state.start&&state.seq[i]===current)i--;state.index=Math.max(state.start,i);state.wins=0}}
+ if(c.mode==='sequence_lr'){if(won)state.index=Math.max(0,state.index-1);else if(state.index===state.seq.length-1){state.stopped=c.maxRule==='stop'}else state.index++;return}
+ if(won){state.wins++;state.losses=0;if(state.index>=state.start&&state.wins>=c.winThreshold){let i=state.index-1;while(i>state.start&&state.seq[i]===state.seq[state.index])i--;state.index=Math.max(state.start,i);state.wins=0}}
  else {state.losses++;state.wins=0;const threshold=state.index<state.start?1:c.lossThreshold;if(state.losses>=threshold){state.losses=0;if(state.index===state.seq.length-1){state.stopped=c.maxRule==='stop'}else{const current=state.seq[state.index];let i=state.index+1;while(i<state.seq.length-1&&state.seq[i]===current)i++;state.index=i}}}
 }
 
@@ -82,7 +82,7 @@ async function run(shoes,modeOverride=null,quiet=false,configOverrides=null){
    if(custom){stake=custom.seq[custom.index];if(custom.stopped)stopped=true}const bet=pendingTieBet||(signal&&!stopped?signal.bet:null);
    const wagerState={recoveryShoe,signalColumn:signal?signal.col+1:null,activeColumn:column+1,lossesBefore:lossesInColumn,expectedStake:stake,tieCarry:Boolean(pendingTieBet),shoeGrossLossBefore:shoeGrossLoss};
    if(bet){
-    if(shoeGrossLoss+stake>shoeLossCap+0.0000001){if(config.recovery&&!recoveryShoe)recoveryNextShoe=true;break}
+    if(shoeGrossLoss+stake>shoeLossCap+0.0000001){result.capStops++;if(config.recovery&&!recoveryShoe&&!custom)recoveryNextShoe=true;break}
     const betColumn=pendingTieBet?pendingTieColumn:signal.col;
     if(stake>cap||(!custom&&config.capMethod==='steps'&&lossesInColumn>=config.steps)){stopped=true;stake=config.mode.startsWith('preset_')?1:config.start;previousStake=0;config.presetStep=0;pendingTieBet=null;pendingTieColumn=null;result.capStops++;history.push(outcome);if(recoveryShoe)break;continue}shoePlayed.add(betColumn);result.stakeMax=Math.max(result.stakeMax,stake);result.bets++;
     if(outcome==='T'){result.pushes++;pendingTieBet=bet;pendingTieColumn=betColumn;betsAudit.push({hand:handNumber,column:betColumn+1,bet,stake,outcome,delta:0,net:shoeRunning,state:wagerState});}
@@ -91,14 +91,14 @@ async function run(shoes,modeOverride=null,quiet=false,configOverrides=null){
     result.peak=Math.max(result.peak,result.net);result.drawdown=Math.max(result.drawdown,result.peak-result.net);
    }
    history.push(outcome);
-   if(shoeGrossLoss>=shoeLossCap-0.0000001){if(config.recovery&&!recoveryShoe)recoveryNextShoe=true;break}if(recoveryNextShoe&&!recoveryShoe)break;
+   if(shoeGrossLoss>=shoeLossCap-0.0000001){if(config.recovery&&!recoveryShoe&&!custom)recoveryNextShoe=true;break}if(recoveryNextShoe&&!recoveryShoe)break;
    if(columnWins>=config.wins){result.twoWinShoes++;break}
   }
   if(shoeWon.size>0)result.shoesWithHit++;else result.shoesWithoutHit++;
   result.playedColumns+=shoePlayed.size;
   result.winningColumns+=shoeWon.size;
   result.losingColumns+=shoePlayed.size-shoeWon.size;
-  if(config.recovery&&!recoveryShoe&&shoeGrossLoss>=shoeLossCap-0.0000001)recoveryNextShoe=true;const shoeNet=result.net-shoeStartNet;if(config.capMethod==='steps'&&shoeNet < -shoeLossCap-0.000001)throw Error('Shoe loss cap violation on shoe '+(j+1));if(!quiet)result.shoeAudits.push({number:j+1,net:shoeNet,bets:betsAudit,columns:shoePlayed.size,wins:shoeWon.size,handCount:handNumber,recoveryShoe,queuedRecovery:recoveryNextShoe,shoeGrossLoss,shoeLossCap});
+  if(config.recovery&&!recoveryShoe&&!custom&&shoeGrossLoss>=shoeLossCap-0.0000001)recoveryNextShoe=true;const shoeNet=result.net-shoeStartNet;if(config.capMethod==='steps'&&shoeNet < -shoeLossCap-0.000001)throw Error('Shoe loss cap violation on shoe '+(j+1));if(!quiet)result.shoeAudits.push({number:j+1,net:shoeNet,bets:betsAudit,columns:shoePlayed.size,wins:shoeWon.size,handCount:handNumber,recoveryShoe,queuedRecovery:recoveryNextShoe,shoeGrossLoss,shoeLossCap});
   if(shoeNet>0.0000001){result.profitableShoes++;result.winningShoeProfit+=shoeNet;result.biggestWinningShoe=Math.max(result.biggestWinningShoe===null?-Infinity:result.biggestWinningShoe,shoeNet)}else if(shoeNet< -0.0000001){result.losingShoes++;result.losingShoeLoss+=shoeNet;result.biggestLosingShoe=Math.min(result.biggestLosingShoe===null?Infinity:result.biggestLosingShoe,shoeNet)}else result.evenShoes++;
   if(j%5===4){if(!quiet)$('cc-status').textContent='Testing shoe '+(j+1)+' / '+shoes.length+'…';await new Promise(resolve=>setTimeout(resolve,0))}
  }
