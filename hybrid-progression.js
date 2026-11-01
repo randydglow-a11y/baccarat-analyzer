@@ -26,14 +26,14 @@ function create(options={}){
   if(net>target){index=0;net=0;winRun=0;lossRun=0;return snapshot();}
   if(result==='W'){
    winRun++;lossRun=0;
-   if(index>=recoveryStart&&winRun>=winsToDescend){index=Math.max(recoveryStart,index-1);winRun=0;}
+   if(index>=recoveryStart&&winRun>=winsToDescend){const value=sequence[index];let next=index-1;while(next>recoveryStart&&sequence[next]===value)next--;index=Math.max(recoveryStart,next);winRun=0;}
   }else{
    lossRun++;winRun=0;
    const threshold=index<recoveryStart?1:lossesToAdvance;
    if(lossRun>=threshold){
     lossRun=0;
     if(index===sequence.length-1){if(maxRule==='stop')stopped=true;else if(maxRule==='reset')index=0;}
-    else index++;
+    else {const value=sequence[index];do{index++}while(index<sequence.length-1&&sequence[index]===value);}
    }
   }
   return snapshot();
