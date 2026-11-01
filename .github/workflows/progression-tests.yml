@@ -1,0 +1,27 @@
+name: Progression regression checks
+on:
+  push:
+    branches: [feature/custom-hybrid-progressions]
+  pull_request:
+    paths:
+      - 'custom-cockroach-daily-v20.js'
+      - 'hybrid-progression.js'
+      - 'tests/**'
+      - '.github/workflows/progression-tests.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          node --check custom-cockroach-daily-v20.js
+          node --check hybrid-progression.js
+          node --check tests/hybrid-progression.test.js
+      - name: Hybrid progression assertions
+        run: |
+          node -e "global.window=global;require('./hybrid-progression.js');require('./tests/hybrid-progression.test.js')"
