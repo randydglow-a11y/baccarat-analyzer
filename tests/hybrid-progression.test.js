@@ -7,6 +7,7 @@ p.outcome('L');p.outcome('L');p.outcome('L');
 assert(p.snapshot().stake===15,'Early losses reach 15');
 p.outcome('L');assert(p.snapshot().stake===15,'First loss repeats 15');
 p.outcome('L');assert(p.snapshot().stake===30,'Second loss advances to 30');
+p.outcome('L');assert(p.snapshot().stake===30,'First loss at 30 stays at 30');
 p.outcome('W');assert(p.snapshot().stake===30,'First win repeats 30');
 p.outcome('W');assert(p.snapshot().stake===15,'Second win descends to 15 when negative');
 const before=p.snapshot();p.outcome('T');assert(p.snapshot().stake===before.stake&&p.snapshot().net===before.net,'Tie is neutral');
