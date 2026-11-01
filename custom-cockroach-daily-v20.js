@@ -78,7 +78,7 @@ async function run(shoes,modeOverride=null,quiet=false,configOverrides=null){
   const custom=sequenceMode(config)?sequenceState(config):null;const history=[];let shoeGrossLoss=0,column=-1,lossesInColumn=0,recoveryStage=recoveryShoe,stopped=false,stake=config.mode.startsWith('preset_')?1:config.start,previousStake=0,columnWins=0,pendingTieBet=null,pendingTieColumn=null;const cap=config.capMethod==='steps'?Infinity:config.cap;const shoeLossCap=config.capMethod==='steps'?(recoveryShoe?recoveryProgression(config).total:progression(config).total):Infinity;
   for(const outcome of shoes[j]){handNumber++;
    const signal=nextSignal(history,config);
-   if(!pendingTieBet&&signal&&signal.col!==column){column=signal.col;if(!custom&&(config.roadType!=='main-follow'||config.mainCarry!=='carry')){lossesInColumn=0;stake=recoveryShoe?config.start*config.recoveryMult:(config.mode.startsWith('preset_')?1:config.start);previousStake=0;config.presetStep=0}recoveryStage=recoveryShoe;stopped=false}
+   if(!pendingTieBet&&signal&&signal.col!==column){column=signal.col;if(!custom&&(config.roadType!=='main-follow'||config.mainCarry!=='carry')){lossesInColumn=0;stake=recoveryShoe?config.start*config.recoveryMult:(config.mode.startsWith('preset_')?1:config.start);previousStake=0;config.presetStep=0}recoveryStage=recoveryShoe;if(!custom)stopped=false}
    if(custom){stake=custom.seq[custom.index];if(custom.stopped)stopped=true}const bet=pendingTieBet||(signal&&!stopped?signal.bet:null);
    const wagerState={recoveryShoe,signalColumn:signal?signal.col+1:null,activeColumn:column+1,lossesBefore:lossesInColumn,expectedStake:stake,tieCarry:Boolean(pendingTieBet),shoeGrossLossBefore:shoeGrossLoss};
    if(bet){
