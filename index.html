@@ -300,7 +300,7 @@ document.getElementById('history').innerHTML=hands.slice(-60).reverse().map(v=>'
   else if(!enabled&&document.fullscreenElement&&document.exitFullscreen){try{await document.exitFullscreen()}catch(e){}}
  });
 })();
-</script><script src="dashboard.js?v=20261031-live-nav-v5"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script><script src="pdf-import.js?v=20261029-pdf-v7"></script><script src="screenshot-import.js?v=20261029-v2"></script><script src="game-database.js?v=20261029-v1"></script><script src="wizard-replay.js?v=fix-1031c"></script><script src="strategy-testing.js?v=fix-1031c"></script><script src="road-batch.js?v=fix-1031c"></script><script src="bet-backtest.js?v=fix-1031c"></script><script src="custom-cockroach-daily-v20.js?v=random-entry-buffer-1101"></script><script>
+</script><script src="dashboard.js?v=20261031-live-nav-v5"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script><script src="pdf-import.js?v=20261029-pdf-v7"></script><script src="screenshot-import.js?v=20261029-v2"></script><script src="game-database.js?v=20261029-v1"></script><script src="wizard-replay.js?v=fix-1031c"></script><script src="strategy-testing.js?v=fix-1031c"></script><script src="road-batch.js?v=fix-1031c"></script><script src="bet-backtest.js?v=fix-1031c"></script><script src="custom-cockroach-daily-v20.js?v=entry-nav-1101b"></script><script>
 (function(){
  function ensureRecoveryVisible(){
   const validator=document.getElementById('cc-validation'),recovery=document.getElementById('cc-recovery-check');
@@ -512,7 +512,7 @@ function setup(){
  const actions=[
   ['🎮 Live play',()=>document.getElementById('live-companion'),true],
   ['🎲 Generate shoes',()=>document.getElementById('shoe-generator')],
-  ['📈 Test strategy',()=>document.getElementById('custom-cockroach')||document.getElementById('strategy-test-dashboard')||document.getElementById('bet-backtest')],
+  ['📈 Test strategy',()=>document.getElementById('cc-entry-mode')?.closest('label')||document.getElementById('custom-cockroach')],
   ['📅 Daily goal',()=>document.getElementById('cc-daily-target')],
   ['🏆 Find best setup',()=>document.getElementById('cc-best-strategy')||document.querySelector('[id*="best-strategy"],[id*="optimizer"]')||Array.from(document.querySelectorAll('section')).find(e=>/best (strategy|setup)|find my best/i.test(e.textContent.slice(0,250)))],
   ['🧪 Audits & extras',()=>document.getElementById('cc-deep-audit')||document.getElementById('cc-audit')||document.getElementById('bet-backtest')]
@@ -660,6 +660,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 <script>
+function jumpToCockroachEntry(){
+ const field=document.getElementById('cc-entry-mode');
+ const target=field?.closest('label')||document.getElementById('custom-cockroach');
+ if(!target){alert('Custom Cockroach simulator has not loaded. Please refresh in Safari.');return;}
+ document.body.classList.remove('live-play-mode','compact-gameplay','roads-focus');
+ for(let node=target;node&&node!==document.body;node=node.parentElement){
+  node.hidden=false;node.classList.remove('cc-is-folded');
+  if(node.style.display==='none')node.style.removeProperty('display');
+ }
+ document.querySelectorAll('#custom-cockroach .cc-fold-toggle').forEach(b=>{b.setAttribute('aria-expanded','true');b.textContent='Hide tools and results  ▴'});
+ target.scrollIntoView({behavior:'instant',block:'center'});
+}
+window.addEventListener('load',()=>{
+ if(location.hash==='#cockroach-entry')setTimeout(jumpToCockroachEntry,250);
+});
 function openBaccaratWorkspace(kind){
  document.body.classList.remove('live-play-mode','compact-gameplay','roads-focus');
  const targets=kind==='strategy'?['custom-cockroach','bet-backtest']:['cc-deep-audit','cc-audit','cc-validation','bet-backtest'];
