@@ -34,7 +34,7 @@ function buildBig(results){
   }else decisive.push({v,tie:0});
  }
  if(decisive.length)decisive[0].tie+=leadingTies;
- return {cells:position(decisive),leadingTies:decisive.length?0:leadingTies};
+ return {cells:position(decisive),leadingTies:decisive.length?0:leadingTies,openingTieCell:leadingTies>0};
 }
 function derived(big,offset){
  // Derived road begins at the second mark of Big Road column
@@ -45,6 +45,11 @@ function derived(big,offset){
   if(cell.run===0)runs.push([]);
   runs[runs.length-1].push(cell);
  }
+ // Some casino tables (including the supplied reference) reserve one Big Road
+ // position for an opening tie before the first decisive Player/Banker mark.
+ // Account for that extra occupied position when comparing column depths.
+ // Ordinary ties do not create a Big Road cell.
+ const depth=(col)=>runs[col].length+(col===0&&big.openingTieCell?1:0);
  const signals=[];
  for(let col=offset;col<runs.length;col++){
   for(let row=0;row<runs[col].length;row++){
@@ -52,11 +57,11 @@ function derived(big,offset){
    let red;
    if(row===0){
     // Compare the lengths of the two preceding reference columns.
-    red=runs[col-1].length===runs[col-offset-1].length;
+    red=depth(col-1)===depth(col-offset-1);
    }else{
     // Compare occupancy at the same height and immediately above
     // in the offset-th preceding Big Road column.
-    const reference=runs[col-offset].length;
+    const reference=depth(col-offset);
     red=(reference>row)===(reference>row-1);
    }
    signals.push({v:red?'B':'P',tie:0});
