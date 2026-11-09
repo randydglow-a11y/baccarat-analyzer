@@ -68,11 +68,12 @@ function draw(id,cells,style){
  const root=document.getElementById(id);if(!root)return;
  root.replaceChildren();
  const displayRows=window.getRoadDisplayRows?window.getRoadDisplayRows():ROWS;
- // All selectable row counts, including 6, use the same chronological column layout.
- // This affects display only; derived-road signals remain based on original baccarat geometry.
- const visible=cells.map((x,i)=>({
-  ...x,c:Math.floor(i/displayRows),r:i%displayRows
- }));
+ // Standard six-row mode must preserve real baccarat streak geometry.
+ // Nonstandard row counts intentionally use chronological wrapping for analysis.
+ // Derived-road colors always come from the standard six-row Big Road.
+ const visible=displayRows===ROWS
+  ? cells
+  : cells.map((x,i)=>({...x,c:Math.floor(i/displayRows),r:i%displayRows}));
  root.className='road advanced-road '+style;
  const cols=Math.max(12,...visible.map(x=>x.c+1));
  root.style.gridTemplateColumns='repeat('+cols+',30px)';
