@@ -73,12 +73,14 @@ function draw(id,cells,style){
  const root=document.getElementById(id);if(!root)return;
  root.replaceChildren();
  const displayRows=window.getRoadDisplayRows?window.getRoadDisplayRows():ROWS;
- // Standard six-row mode must preserve real baccarat streak geometry.
- // Nonstandard row counts intentionally use chronological wrapping for analysis.
- // Derived-road colors always come from the standard six-row Big Road.
- const visible=displayRows===ROWS
-  ? cells
-  : cells.map((x,i)=>({...x,c:Math.floor(i/displayRows),r:i%displayRows}));
+ // Cockroach Pig is shown in fixed-height chronological columns, including
+ // the six-row setting: six slash marks per column (except the last).
+ // Other advanced roads retain conventional streak geometry at six rows.
+ // All derived-road colors are still calculated from the standard Big Road.
+ const chronological=(id==='cockroach-road'||displayRows!==ROWS);
+ const visible=chronological
+  ? cells.map((x,i)=>({...x,c:Math.floor(i/displayRows),r:i%displayRows}))
+  : cells;
  root.className='road advanced-road '+style;
  const cols=Math.max(12,...visible.map(x=>x.c+1));
  root.style.gridTemplateColumns='repeat('+cols+',30px)';
